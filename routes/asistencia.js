@@ -202,6 +202,19 @@ router.get('/estadisticas/:usuarioId', proteger, async (req, res) => {
 // @access  Private (Admin/Consejo)
 router.get('/exportar', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
     try {
+        const { fechaInicio, fechaFin } = req.query;
+        let filtro = {};
+
+        if (fechaInicio && fechaFin) {
+            const start = new Date(fechaInicio);
+            start.setHours(0, 0, 0, 0); // Inicio del día
+            
+            const end = new Date(fechaFin);
+            end.setHours(23, 59, 59, 999); // Final del día logístico
+            
+            filtro.fecha = { $gte: start, $lte: end };
+        }
+
         const ExcelJS = require('exceljs');
         const workbook = new ExcelJS.Workbook();
         const worksheet = workbook.addWorksheet('Asistencias');
@@ -215,7 +228,7 @@ router.get('/exportar', proteger, autorizarRoles('admin', 'consejo'), async (req
             { header: 'Observaciones', key: 'observaciones', width: 30 },
         ];
 
-        const asistencias = await Asistencia.find()
+        const asistencias = await Asistencia.find(filtro)
             .populate('usuario', 'nombre apellido')
             .sort({ fecha: -1 });
 

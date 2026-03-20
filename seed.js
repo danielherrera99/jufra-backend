@@ -94,7 +94,7 @@ const crearDatosPrueba = async () => {
                 telefono: '+1234567894',
                 fechaNacimiento: new Date('1999-11-30'),
                 fechaIngreso: new Date('2021-02-14'),
-                rol: 'formador',
+                rol: 'consejo',
                 cargo: 'formador',
                 etapaFormacion: 'promesado'
             }
