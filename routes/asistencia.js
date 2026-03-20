@@ -234,7 +234,7 @@ router.get('/exportar', proteger, autorizarRoles('admin', 'consejo'), async (req
 
         asistencias.forEach(a => {
             worksheet.addRow({
-                fecha: a.fecha ? a.fecha.toLocaleDateString() : '',
+                fecha: a.fecha ? new Date(a.fecha).toLocaleDateString('es-ES', { timeZone: 'America/Lima' }) : '',
                 hermano: a.usuario ? `${a.usuario.nombre} ${a.usuario.apellido}` : 'Usuario Eliminado',
                 tipo: a.tipoReunion,
                 estado: a.estado ? (a.estado.charAt(0).toUpperCase() + a.estado.slice(1)) : (a.presente ? 'Presente' : 'Falta'),
