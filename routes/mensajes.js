@@ -2,7 +2,7 @@ const express = require('express');
 const router = express.Router();
 const Mensaje = require('../models/Mensaje');
 const Usuario = require('../models/Usuario');
-const { proteger } = require('../middleware/auth');
+const { proteger, autorizarRoles } = require('../middleware/auth');
 
 // @route   GET /api/mensajes/conversaciones
 // @desc    Obtener lista de usuarios con los que tengo conversaciones
