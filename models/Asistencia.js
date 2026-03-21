@@ -4,7 +4,11 @@ const AsistenciaSchema = new mongoose.Schema({
     usuario: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Usuario',
-        required: true
+        required: false // Ahora opcional para permitir invitados
+    },
+    nombreInvitado: {
+        type: String,
+        trim: true // Para personas sin cuenta
     },
     fecha: {
         type: Date,

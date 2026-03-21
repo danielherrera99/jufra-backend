@@ -69,19 +69,25 @@ router.post('/lote', proteger, autorizarRoles('admin', 'consejo'), async (req, r
             const fechaNormalizada = new Date(fecha);
             fechaNormalizada.setHours(12, 0, 0, 0); // Normalizar a mediodía para evitar desfases de zona horaria en la búsqueda
 
+            const filter = asis.usuarioId 
+                ? { 
+                    usuario: asis.usuarioId, 
+                    fecha: { $gte: new Date(fechaNormalizada).setHours(0,0,0,0), $lte: new Date(fechaNormalizada).setHours(23,59,59,999) }, 
+                    tipoReunion 
+                }
+                : { 
+                    nombreInvitado: asis.nombreInvitado, 
+                    fecha: { $gte: new Date(fechaNormalizada).setHours(0,0,0,0), $lte: new Date(fechaNormalizada).setHours(23,59,59,999) }, 
+                    tipoReunion 
+                };
+
             return {
                 updateOne: {
-                    filter: { 
-                        usuario: asis.usuarioId, 
-                        fecha: { 
-                            $gte: new Date(fechaNormalizada).setHours(0,0,0,0), 
-                            $lte: new Date(fechaNormalizada).setHours(23,59,59,999) 
-                        }, 
-                        tipoReunion 
-                    },
+                    filter,
                     update: {
                         $set: {
                             usuario: asis.usuarioId,
+                            nombreInvitado: asis.nombreInvitado,
                             fecha: fechaNormalizada,
                             tipoReunion,
                             estado: asis.estado || 'presente',
