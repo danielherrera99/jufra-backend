@@ -104,4 +104,65 @@ router.post('/', proteger, async (req, res) => {
     }
 });
 
+// @route   GET /api/mensajes/admin/todas
+// @desc    Obtener TODAS las conversaciones del sistema (Admin solamente)
+// @access  Private (Admin/Consejo)
+router.get('/admin/todas', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
+    try {
+        const mensajes = await Mensaje.find()
+            .sort({ createdAt: -1 })
+            .populate('remitente', 'nombre apellido foto cargo')
+            .populate('destinatario', 'nombre apellido foto cargo');
+
+        const conversacionesMap = new Map();
+
+        for (const msg of mensajes) {
+            if (!msg.remitente || !msg.destinatario) continue;
+            const ids = [msg.remitente._id.toString(), msg.destinatario._id.toString()].sort();
+            const key = ids.join('-');
+
+            if (!conversacionesMap.has(key)) {
+                conversacionesMap.set(key, {
+                    usuario1: msg.remitente,
+                    usuario2: msg.destinatario,
+                    ultimoMensaje: msg,
+                    count: 1
+                });
+            } else {
+                conversacionesMap.get(key).count++;
+            }
+        }
+
+        const conversaciones = Array.from(conversacionesMap.values());
+        res.json({ success: true, conversaciones });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error al obtener todas las conversaciones' });
+    }
+});
+
+// @route   GET /api/mensajes/admin/chat/:user1Id/:user2Id
+// @desc    Obtener mensajes entre dos usuarios cualesquiera (Admin solamente)
+// @access  Private (Admin/Consejo)
+router.get('/admin/chat/:user1Id/:user2Id', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
+    try {
+        const { user1Id, user2Id } = req.params;
+
+        const mensajes = await Mensaje.find({
+            $or: [
+                { remitente: user1Id, destinatario: user2Id },
+                { remitente: user2Id, destinatario: user1Id }
+            ]
+        })
+            .sort({ createdAt: 1 })
+            .populate('remitente', 'nombre apellido')
+            .populate('destinatario', 'nombre apellido');
+
+        res.json({ success: true, mensajes });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error al obtener mensajes de la conversación' });
+    }
+});
+
 module.exports = router;

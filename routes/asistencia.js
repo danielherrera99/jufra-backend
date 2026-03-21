@@ -58,6 +58,60 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) 
     }
 });
 
+// @route   POST /api/asistencia/lote
+// @desc    Registrar asistencia masiva (por lote)
+// @access  Private (Admin/Consejo)
+router.post('/lote', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
+    try {
+        const { asistencias, fecha, tipoReunion } = req.body;
+        
+        const bulkOps = asistencias.map(asis => {
+            const fechaNormalizada = new Date(fecha);
+            fechaNormalizada.setHours(12, 0, 0, 0); // Normalizar a mediodía para evitar desfases de zona horaria en la búsqueda
+
+            return {
+                updateOne: {
+                    filter: { 
+                        usuario: asis.usuarioId, 
+                        fecha: { 
+                            $gte: new Date(fechaNormalizada).setHours(0,0,0,0), 
+                            $lte: new Date(fechaNormalizada).setHours(23,59,59,999) 
+                        }, 
+                        tipoReunion 
+                    },
+                    update: {
+                        $set: {
+                            usuario: asis.usuarioId,
+                            fecha: fechaNormalizada,
+                            tipoReunion,
+                            estado: asis.estado || 'presente',
+                            presente: asis.estado === 'presente',
+                            metodoRegistro: 'manual_web',
+                            observaciones: asis.observaciones || '',
+                            registradoPor: req.usuario._id
+                        }
+                    },
+                    upsert: true
+                }
+            };
+        });
+
+        await Asistencia.bulkWrite(bulkOps);
+
+        res.status(201).json({
+            success: true,
+            message: 'Asistencia masiva procesada exitosamente'
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al procesar asistencia masiva',
+            error: error.message
+        });
+    }
+});
+
 // @route   POST /api/asistencia/qr
 // @desc    Registrar asistencia mediante código QR
 // @access  Private
