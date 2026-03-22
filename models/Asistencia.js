@@ -26,12 +26,12 @@ const AsistenciaSchema = new mongoose.Schema({
     },
     estado: {
         type: String,
-        enum: ['presente', 'ausente', 'justificado'],
+        enum: ['presente', 'ausente', 'justificado', 'falta', 'permiso', 'tardanza'],
         default: 'presente'
     },
     metodoRegistro: {
         type: String,
-        enum: ['qr', 'manual', 'automatico'],
+        enum: ['qr', 'manual', 'automatico', 'manual_web', 'manual_app'],
         default: 'manual'
     },
     observaciones: {
@@ -46,7 +46,7 @@ const AsistenciaSchema = new mongoose.Schema({
     timestamps: true
 });
 
-// Índice compuesto para evitar duplicados
-AsistenciaSchema.index({ usuario: 1, fecha: 1, tipoReunion: 1 }, { unique: true });
+// Índice compuesto para evitar duplicados en hermanos (los invitados no usarán este índice para no chocar)
+AsistenciaSchema.index({ usuario: 1, fecha: 1, tipoReunion: 1 }, { unique: true, sparse: true, partialFilterExpression: { usuario: { $exists: true, $ne: null } } });
 
 module.exports = mongoose.model('Asistencia', AsistenciaSchema);
