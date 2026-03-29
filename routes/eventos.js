@@ -88,7 +88,10 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo', 'coordinador'), up
             imagenUrl
         };
 
-        if (lat && lng) {
+        const hasUbicacion = lat !== undefined && lat !== null && lat !== '' && 
+                            lng !== undefined && lng !== null && lng !== '';
+        
+        if (hasUbicacion) {
             eventoData.ubicacion = {
                 lat: parseFloat(lat),
                 lng: parseFloat(lng)
@@ -122,7 +125,7 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo', 'coordinador'), up
         console.error(error);
         res.status(500).json({
             success: false,
-            message: 'Error al crear evento'
+            message: `Error al crear evento: ${error.message}`
         });
     }
 });

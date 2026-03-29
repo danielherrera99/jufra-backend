@@ -2,6 +2,8 @@
  * Helper para enviar notificaciones push usando la API de Expo
  */
 
+const https = require('https');
+
 const enviarNotificacionGrupal = async (tokens, titulo, mensaje, data = {}) => {
     if (!tokens || tokens.length === 0) return;
 
@@ -18,22 +20,43 @@ const enviarNotificacionGrupal = async (tokens, titulo, mensaje, data = {}) => {
         data: data,
     }));
 
-    try {
-        const response = await fetch('https://exp.host/--/api/v2/push/send', {
+    // Use native https for broader Node version compatibility
+    return new Promise((resolve, reject) => {
+        const body = JSON.stringify(messages);
+        const req = https.request({
+            hostname: 'exp.host',
+            port: 443,
+            path: '/--/api/v2/push/send',
             method: 'POST',
             headers: {
-                Accept: 'application/json',
+                'Accept': 'application/json',
                 'Accept-encoding': 'gzip, deflate',
                 'Content-Type': 'application/json',
-            },
-            body: JSON.stringify(messages),
+                'Content-Length': Buffer.byteLength(body)
+            }
+        }, (res) => {
+            let resData = '';
+            res.on('data', chunk => { resData += chunk; });
+            res.on('end', () => {
+                try {
+                    const parsed = JSON.parse(resData);
+                    console.log('Push notifications sent:', parsed);
+                    resolve(parsed);
+                } catch (e) {
+                    console.error('Error parsing expo response:', e);
+                    resolve({ error: 'Parse error' });
+                }
+            });
         });
 
-        const rec = await response.json();
-        console.log('Push notifications sent:', rec);
-    } catch (error) {
-        console.error('Error sending push notifications:', error);
-    }
+        req.on('error', (e) => {
+            console.error('Error sending push notifications:', e);
+            resolve({ error: e.message });
+        });
+
+        req.write(body);
+        req.end();
+    });
 };
 
 module.exports = {

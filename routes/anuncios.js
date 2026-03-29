@@ -64,7 +64,10 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('im
             autor: req.usuario._id
         };
 
-        if (lat && lng) {
+        const hasUbicacion = lat !== undefined && lat !== null && lat !== '' && 
+                            lng !== undefined && lng !== null && lng !== '';
+                            
+        if (hasUbicacion) {
             anuncioData.ubicacion = {
                 lat: parseFloat(lat),
                 lng: parseFloat(lng)
@@ -101,7 +104,7 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('im
         console.error(error);
         res.status(500).json({
             success: false,
-            message: 'Error al crear anuncio',
+            message: `Error al crear anuncio: ${error.message}`,
             error: error.message
         });
     }
