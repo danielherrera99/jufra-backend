@@ -83,7 +83,7 @@ router.post('/registro', [
     body('password').isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres')
 ], async (req, res) => {
     try {
-        const { nombre, apellido, username, email, password, telefono, fechaNacimiento } = req.body;
+        const { nombre, apellido, username, email, password, telefono, fechaNacimiento, contactoEmergencia, nombreContactoEmergencia } = req.body;
 
         // Verificar si el usuario ya existe
         const usuarioExiste = await Usuario.findOne({ username });
@@ -102,7 +102,9 @@ router.post('/registro', [
             email: email || undefined, // Evitar guardar string vacío para que funcione sparse index
             password,
             telefono,
-            fechaNacimiento
+            fechaNacimiento,
+            contactoEmergencia,
+            nombreContactoEmergencia
         });
 
         // Generar código QR para el usuario
@@ -263,7 +265,8 @@ router.put('/perfil', require('../middleware/auth').proteger, async (req, res) =
     try {
         const camposPermitidos = [
             'nombre', 'apellido', 'telefono', 'fechaNacimiento',
-            'fechaIngreso', 'fechaPromesa', 'foto', 'password'
+            'fechaIngreso', 'fechaPromesa', 'foto', 'password',
+            'contactoEmergencia', 'nombreContactoEmergencia', 'expoPushToken'
         ];
 
         let usuario = await Usuario.findById(req.usuario._id);

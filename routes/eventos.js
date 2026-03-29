@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Evento = require('../models/Evento');
+const Usuario = require('../models/Usuario');
 const { proteger, autorizarRoles } = require('../middleware/auth');
+const { enviarNotificacionGrupal } = require('../utils/expoPush');
 
 const multer = require('multer');
 const path = require('path');
@@ -94,6 +96,22 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo', 'coordinador'), up
         }
 
         const evento = await Evento.create(eventoData);
+
+        // Notificar a todos los usuarios activos
+        try {
+            const usuariosActivos = await Usuario.find({ activo: true, expoPushToken: { $ne: null } });
+            const tokens = usuariosActivos.map(u => u.expoPushToken);
+            if (tokens.length > 0) {
+                await enviarNotificacionGrupal(
+                    tokens, 
+                    `📅 Nuevo Evento Programado: ${titulo}`, 
+                    `${lugar ? '📍 ' + lugar + ' - ' : ''}${new Date(fecha).toLocaleDateString()} a las ${hora}`,
+                    { id: evento._id, tipo: 'evento' }
+                );
+            }
+        } catch (pushErr) {
+            console.error('Error enviando notificaciones para evento:', pushErr);
+        }
 
         res.status(201).json({
             success: true,

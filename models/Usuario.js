@@ -38,6 +38,14 @@ const UsuarioSchema = new mongoose.Schema({
         type: String,
         trim: true
     },
+    contactoEmergencia: {
+        type: String,
+        trim: true
+    },
+    nombreContactoEmergencia: {
+        type: String,
+        trim: true
+    },
     fechaNacimiento: {
         type: Date
     },
@@ -73,6 +81,10 @@ const UsuarioSchema = new mongoose.Schema({
     },
     codigoQR: {
         type: String
+    },
+    expoPushToken: {
+        type: String,
+        default: null
     }
 }, {
     timestamps: true

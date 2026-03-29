@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Anuncio = require('../models/Anuncio');
+const Usuario = require('../models/Usuario');
 const { proteger, autorizarRoles } = require('../middleware/auth');
+const { enviarNotificacionGrupal } = require('../utils/expoPush');
 
 const multer = require('multer');
 const path = require('path');
@@ -72,6 +74,23 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('im
         const anuncio = await Anuncio.create(anuncioData);
 
         await anuncio.populate('autor', 'nombre apellido cargo');
+
+        // Notificar a todos los usuarios activos a través de Push Notifications
+        try {
+            const usuariosActivos = await Usuario.find({ activo: true, expoPushToken: { $ne: null } });
+            const tokens = usuariosActivos.map(u => u.expoPushToken);
+            if (tokens.length > 0) {
+                const badgeStr = prioridad === 'alta' ? '🚨' : '📢';
+                await enviarNotificacionGrupal(
+                    tokens, 
+                    `${badgeStr} Nuevo Anuncio: ${titulo}`, 
+                    contenido.length > 60 ? contenido.substring(0, 60) + '...' : contenido,
+                    { id: anuncio._id, tipo: 'anuncio' }
+                );
+            }
+        } catch (pushErr) {
+            console.error('Error enviando notificaciones para anuncio:', pushErr);
+        }
 
         res.status(201).json({
             success: true,
