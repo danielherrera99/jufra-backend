@@ -8,7 +8,7 @@ const SCOPES = ['https://www.googleapis.com/auth/drive'];
 const FOLDER_ID = '10ubk-_OkcsC-AbXatZgcDbzwx40pu';
 
 const auth = new google.auth.GoogleAuth({
-    keyFile: KEY_FILE_PATH,
+    keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || KEY_FILE_PATH,
     scopes: SCOPES,
 });
 
