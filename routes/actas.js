@@ -2,6 +2,8 @@ const express = require('express');
 const router = express.Router();
 const Acta = require('../models/Acta');
 const { proteger, autorizarRoles } = require('../middleware/auth');
+const { uploadPdfToDrive } = require('../utils/drive');
+const { generarActaPDF } = require('../utils/pdfGenerator');
 
 // @route   POST /api/actas
 // @desc    Crear nueva acta
@@ -23,6 +25,24 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) 
         await acta.populate('asistentes', 'nombre apellido foto');
         await acta.populate('acuerdos.responsable', 'nombre apellido');
         await acta.populate('creadoPor', 'nombre apellido');
+
+        // --- Generar PDF y subir a Google Drive ---
+        try {
+            const pdfBuffer = await generarActaPDF(acta);
+            // Nombre del archivo: Acta - [Fecha] - [Titulo]
+            const fechaLimpia = new Date(acta.fecha).toISOString().split('T')[0];
+            const safeTitle = acta.titulo.replace(/[^a-zA-Z0-9]/g, '_');
+            const pdfFileName = `Acta_${fechaLimpia}_${safeTitle}.pdf`;
+            
+            const driveLink = await uploadPdfToDrive(pdfBuffer, pdfFileName);
+            
+            // Actualizar el acta con el link
+            acta.archivoPDF = driveLink;
+            await acta.save();
+        } catch (uploadError) {
+            console.error('Error al generar o subir PDF de acta:', uploadError);
+            // No bloqueamos la respuesta, el acta se creo exitosamente de todas formas.
+        }
 
         res.status(201).json({
             success: true,
@@ -125,6 +145,21 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res
                 success: false,
                 message: 'Acta no encontrada'
             });
+        }
+
+        // --- Regenerar PDF y subir a Google Drive actualizando el archivoPDF ---
+        try {
+            const pdfBuffer = await generarActaPDF(acta);
+            const fechaLimpia = new Date(acta.fecha).toISOString().split('T')[0];
+            const safeTitle = acta.titulo.replace(/[^a-zA-Z0-9]/g, '_');
+            const pdfFileName = `Acta_Actualizada_${fechaLimpia}_${safeTitle}.pdf`;
+            
+            const driveLink = await uploadPdfToDrive(pdfBuffer, pdfFileName);
+            
+            acta.archivoPDF = driveLink;
+            await acta.save();
+        } catch (uploadError) {
+            console.error('Error al re-generar o subir PDF actualizado de acta:', uploadError);
         }
 
         res.status(200).json({
