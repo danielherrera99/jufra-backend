@@ -5,7 +5,7 @@ const stream = require('stream');
 const KEY_FILE_PATH = path.join(__dirname, '../jufra-drive-b66f05f577a8.json');
 const SCOPES = ['https://www.googleapis.com/auth/drive'];
 
-const FOLDER_ID = '10ubk-_OkcsC-AbXatZgcDbzwx40pu';
+const FOLDER_ID = '10pubk-_OkcsC-AbXatZgcDbzwx40pu';
 
 const auth = new google.auth.GoogleAuth({
     keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || KEY_FILE_PATH,
