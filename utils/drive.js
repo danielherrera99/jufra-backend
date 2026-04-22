@@ -2,14 +2,16 @@ const { google } = require('googleapis');
 const path = require('path');
 const stream = require('stream');
 
-const KEY_FILE_PATH = path.join(__dirname, '../jufra-drive-b66f05f577a8.json');
-const SCOPES = ['https://www.googleapis.com/auth/drive'];
-
 const FOLDER_ID = '104IEJOkcsC-AbXatZgcDbzwx40pubk-_';
 
-const auth = new google.auth.GoogleAuth({
-    keyFile: process.env.GOOGLE_APPLICATION_CREDENTIALS || KEY_FILE_PATH,
-    scopes: SCOPES,
+const auth = new google.auth.OAuth2(
+    process.env.GOOGLE_CLIENT_ID,
+    process.env.GOOGLE_CLIENT_SECRET,
+    'http://localhost:3000/oauth2callback' // redirect_uri no se necesita para API calls con refresh token, pero se pone para no romper la libreria
+);
+
+auth.setCredentials({
+    refresh_token: process.env.GOOGLE_REFRESH_TOKEN
 });
 
 const drive = google.drive({ version: 'v3', auth });

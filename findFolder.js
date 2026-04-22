@@ -1,5 +1,6 @@
 const { google } = require('googleapis');
 const path = require('path');
+const fs = require('fs');
 
 const KEY_FILE_PATH = path.join(__dirname, 'jufra-drive-b66f05f577a8.json');
 const SCOPES = ['https://www.googleapis.com/auth/drive'];
@@ -19,13 +20,14 @@ async function findFolder() {
         });
         
         const folders = res.data.files;
-        if (folders.length === 0) {
-            console.log('No se encontro la carpeta "Actas de JUFRA". Asegurate de compartirla con el correo que esta en el json.');
+        if (folders.length > 0) {
+            fs.writeFileSync('true_id.txt', folders[0].id, 'utf8');
+            console.log('ID saved to true_id.txt');
         } else {
-            console.log(`¡Carpeta encontrada! ID: ${folders[0].id}`);
+            console.log('Not found');
         }
     } catch (err) {
-        console.error('La API devolvió un error: ' + err);
+        console.error(err);
     }
 }
 
