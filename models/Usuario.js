@@ -85,6 +85,14 @@ const UsuarioSchema = new mongoose.Schema({
     expoPushToken: {
         type: String,
         default: null
+    },
+    resetPasswordCode: {
+        type: String,
+        select: false
+    },
+    resetPasswordExpire: {
+        type: Date,
+        select: false
     }
 }, {
     timestamps: true

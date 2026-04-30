@@ -328,4 +328,158 @@ router.put('/perfil', require('../middleware/auth').proteger, async (req, res) =
     }
 });
 
+// @route   POST /api/auth/recuperar-password
+// @desc    Enviar código de recuperación al correo
+// @access  Public
+router.post('/recuperar-password', async (req, res) => {
+    try {
+        const { usernameOrEmail } = req.body;
+        if (!usernameOrEmail) {
+            return res.status(400).json({ success: false, message: 'Por favor, proporciona un usuario o correo.' });
+        }
+
+        // Buscar por email o username
+        const usuario = await Usuario.findOne({
+            $or: [{ email: usernameOrEmail.toLowerCase() }, { username: usernameOrEmail }]
+        });
+
+        if (!usuario) {
+            return res.status(404).json({ success: false, message: 'No existe una cuenta con esa información.' });
+        }
+
+        if (!usuario.email) {
+            return res.status(400).json({ success: false, message: 'Esta cuenta no tiene un correo registrado. Contacta al administrador.' });
+        }
+
+        // Generar código de 6 dígitos
+        const crypto = require('crypto');
+        const resetCode = crypto.randomInt(100000, 999999).toString();
+
+        // Hashear el código antes de guardarlo por seguridad (opcional, pero buena práctica)
+        const bcrypt = require('bcryptjs');
+        const salt = await bcrypt.genSalt(10);
+        usuario.resetPasswordCode = await bcrypt.hash(resetCode, salt);
+        usuario.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 minutos
+
+        await usuario.save({ validateBeforeSave: false });
+
+        // Enviar correo
+        const nodemailer = require('nodemailer');
+        
+        // El transporter usa las variables de entorno configuradas
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER || 'jufra.app@gmail.com',
+                pass: process.env.EMAIL_PASS || 'tu-contrasena-de-aplicacion'
+            }
+        });
+
+        const mensaje = `
+            <h2>Recuperación de Contraseña - JUFRA</h2>
+            <p>Hola ${usuario.nombre},</p>
+            <p>Has solicitado restablecer tu contraseña. Utiliza el siguiente código de 6 dígitos en la aplicación:</p>
+            <h1 style="background: #f4f4f4; padding: 10px; text-align: center; letter-spacing: 5px; color: #624b2b;">${resetCode}</h1>
+            <p>Este código expira en 15 minutos.</p>
+            <p>Si no fuiste tú, puedes ignorar este correo.</p>
+        `;
+
+        try {
+            await transporter.sendMail({
+                from: `"JUFRA App" <${process.env.EMAIL_USER || 'jufra.app@gmail.com'}>`,
+                to: usuario.email,
+                subject: 'Código de Recuperación de Contraseña',
+                html: mensaje
+            });
+
+            res.status(200).json({ success: true, message: 'Código enviado al correo electrónico registrado.' });
+        } catch (err) {
+            console.error('Error enviando email:', err);
+            usuario.resetPasswordCode = undefined;
+            usuario.resetPasswordExpire = undefined;
+            await usuario.save({ validateBeforeSave: false });
+            return res.status(500).json({ success: false, message: 'No se pudo enviar el correo. Verifica la configuración del servidor.' });
+        }
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error en el servidor', error: error.message });
+    }
+});
+
+// @route   POST /api/auth/verificar-codigo
+// @desc    Verificar que el código ingresado es correcto
+// @access  Public
+router.post('/verificar-codigo', async (req, res) => {
+    try {
+        const { usernameOrEmail, codigo } = req.body;
+        if (!usernameOrEmail || !codigo) {
+            return res.status(400).json({ success: false, message: 'Falta información.' });
+        }
+
+        const usuario = await Usuario.findOne({
+            $or: [{ email: usernameOrEmail.toLowerCase() }, { username: usernameOrEmail }],
+            resetPasswordExpire: { $gt: Date.now() }
+        }).select('+resetPasswordCode');
+
+        if (!usuario) {
+            return res.status(400).json({ success: false, message: 'Código inválido o ha expirado.' });
+        }
+
+        const bcrypt = require('bcryptjs');
+        const isMatch = await bcrypt.compare(codigo.toString(), usuario.resetPasswordCode);
+
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: 'Código incorrecto.' });
+        }
+
+        res.status(200).json({ success: true, message: 'Código verificado correctamente.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error en el servidor', error: error.message });
+    }
+});
+
+// @route   PUT /api/auth/reset-password
+// @desc    Restablecer contraseña usando el código verificado
+// @access  Public
+router.put('/reset-password', async (req, res) => {
+    try {
+        const { usernameOrEmail, codigo, newPassword } = req.body;
+        if (!usernameOrEmail || !codigo || !newPassword) {
+            return res.status(400).json({ success: false, message: 'Faltan datos.' });
+        }
+
+        if (newPassword.length < 6) {
+            return res.status(400).json({ success: false, message: 'La contraseña debe tener al menos 6 caracteres.' });
+        }
+
+        const usuario = await Usuario.findOne({
+            $or: [{ email: usernameOrEmail.toLowerCase() }, { username: usernameOrEmail }],
+            resetPasswordExpire: { $gt: Date.now() }
+        }).select('+resetPasswordCode');
+
+        if (!usuario) {
+            return res.status(400).json({ success: false, message: 'Código inválido o expirado.' });
+        }
+
+        const bcrypt = require('bcryptjs');
+        const isMatch = await bcrypt.compare(codigo.toString(), usuario.resetPasswordCode);
+
+        if (!isMatch) {
+            return res.status(400).json({ success: false, message: 'Código incorrecto.' });
+        }
+
+        // Si todo está bien, actualizar la contraseña
+        usuario.password = newPassword; // El middleware pre-save hará el hash
+        usuario.resetPasswordCode = undefined;
+        usuario.resetPasswordExpire = undefined;
+        await usuario.save();
+
+        res.status(200).json({ success: true, message: 'Contraseña restablecida exitosamente. Ya puedes iniciar sesión.' });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error en el servidor', error: error.message });
+    }
+});
+
 module.exports = router;
