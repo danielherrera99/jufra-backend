@@ -107,9 +107,13 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res
                 }
 
                 // Campos opcionales: permitir vacíos (convertir a null si es fecha o string vacío)
-                if (['fechaNacimiento', 'fechaIngreso', 'fechaPromesa'].includes(campo)) {
+                if (['fechaNacimiento', 'fechaIngreso', 'fechaPromesa', 'email'].includes(campo)) {
                     if (valor === '' || valor === null) {
-                        hermano[campo] = null;
+                        if (campo === 'email') {
+                            hermano[campo] = undefined;
+                        } else {
+                            hermano[campo] = null;
+                        }
                     } else {
                         hermano[campo] = valor;
                     }

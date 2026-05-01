@@ -320,9 +320,14 @@ router.put('/perfil', require('../middleware/auth').proteger, async (req, res) =
                 }
 
                 // Campos opcionales: permitir vacíos (convertir a null si es fecha o string vacío)
-                if (['fechaNacimiento', 'fechaIngreso', 'fechaPromesa'].includes(campo)) {
+                if (['fechaNacimiento', 'fechaIngreso', 'fechaPromesa', 'email'].includes(campo)) {
                     if (valor === '' || valor === null) {
-                        usuario[campo] = null;
+                        // Para evitar el error E11000 en el índice sparse unique de email
+                        if (campo === 'email') {
+                            usuario[campo] = undefined;
+                        } else {
+                            usuario[campo] = null;
+                        }
                     } else {
                         usuario[campo] = valor;
                     }
