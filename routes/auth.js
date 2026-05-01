@@ -1,25 +1,30 @@
 const express = require('express');
 const router = express.Router();
-const { body } = require('express-validator');
+const { body, validationResult } = require('express-validator');
 const Usuario = require('../models/Usuario');
 const { generarToken } = require('../middleware/auth');
 const QRCode = require('qrcode');
 const multer = require('multer');
 const path = require('path');
 const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Configurar almacenamiento de fotos de perfil
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const dir = 'uploads/perfiles';
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        cb(null, dir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, `perfil-${req.usuario._id}-${Date.now()}${path.extname(file.originalname)}`);
-    }
+// Configurar Cloudinary con variables de entorno
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Configurar almacenamiento de fotos de perfil en Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'jufra_perfiles', // Carpeta en Cloudinary
+    allowed_formats: ['jpg', 'png', 'jpeg'],
+    public_id: (req, file) => `perfil-${req.usuario._id}-${Date.now()}`,
+  },
 });
 
 const fileFilter = (req, file, cb) => {
@@ -48,7 +53,8 @@ router.post('/foto', require('../middleware/auth').proteger, upload.single('foto
             });
         }
 
-        const archivoUrl = `${req.protocol}://${req.get('host')}/uploads/perfiles/${req.file.filename}`;
+        // En Cloudinary, la URL segura viene en req.file.path
+        const archivoUrl = req.file.path;
 
         const usuario = await Usuario.findById(req.usuario._id);
         if (!usuario) {
@@ -83,15 +89,34 @@ router.post('/registro', [
     body('password').isLength({ min: 6 }).withMessage('La contraseña debe tener al menos 6 caracteres')
 ], async (req, res) => {
     try {
-        const { nombre, apellido, username, email, password, telefono, fechaNacimiento, contactoEmergencia, nombreContactoEmergencia } = req.body;
-
-        // Verificar si el usuario ya existe
-        const usuarioExiste = await Usuario.findOne({ username });
-        if (usuarioExiste) {
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
             return res.status(400).json({
                 success: false,
-                message: 'El nombre de usuario ya está en uso'
+                message: errors.array()[0].msg
             });
+        }
+
+        const { nombre, apellido, username, email, password, telefono, fechaNacimiento, contactoEmergencia, nombreContactoEmergencia } = req.body;
+
+        // Verificar si el usuario ya existe por username o email
+        const usuarioExiste = await Usuario.findOne({ 
+            $or: [{ username }, { email }]
+        });
+        
+        if (usuarioExiste) {
+            if (usuarioExiste.username === username) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'El nombre de usuario ya está en uso'
+                });
+            }
+            if (usuarioExiste.email === email) {
+                return res.status(400).json({
+                    success: false,
+                    message: 'El correo electrónico ya está registrado'
+                });
+            }
         }
 
         // Crear usuario
