@@ -291,7 +291,7 @@ router.put('/perfil', require('../middleware/auth').proteger, async (req, res) =
         const camposPermitidos = [
             'nombre', 'apellido', 'telefono', 'fechaNacimiento',
             'fechaIngreso', 'fechaPromesa', 'foto', 'password',
-            'contactoEmergencia', 'nombreContactoEmergencia', 'expoPushToken'
+            'contactoEmergencia', 'nombreContactoEmergencia', 'expoPushToken', 'email'
         ];
 
         let usuario = await Usuario.findById(req.usuario._id);

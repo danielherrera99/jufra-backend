@@ -78,7 +78,7 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res
         const camposPermitidos = [
             'nombre', 'apellido', 'telefono', 'fechaNacimiento',
             'fechaIngreso', 'fechaPromesa', 'rol', 'cargo',
-            'etapaFormacion', 'foto', 'activo', 'username', 'password'
+            'etapaFormacion', 'foto', 'activo', 'username', 'password', 'email'
         ];
 
         let hermano = await Usuario.findById(req.params.id);
@@ -114,7 +114,7 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res
                         hermano[campo] = valor;
                     }
                 } else {
-                    // Otros campos (telefono, rol, cargo, etc.)
+                    // Otros campos (telefono, rol, cargo, email, etc.)
                     hermano[campo] = valor;
                 }
             }
