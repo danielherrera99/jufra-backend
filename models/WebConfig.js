@@ -3,7 +3,7 @@ const mongoose = require('mongoose');
 const WebConfigSchema = new mongoose.Schema({
     heroTitle: {
         type: String,
-        default: 'Juventud Franciscana en el Perú'
+        default: 'Juventud Franciscana - Pomalca'
     },
     heroSubtitle: {
         type: String,
