@@ -259,4 +259,106 @@ router.delete('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, 
     }
 });
 
+// @route   POST /api/hermanos/comunicacion/masivo
+// @desc    Enviar correos masivos o individuales a la fraternidad/externos
+// @access  Private (Admin/Consejo)
+router.post('/comunicacion/masivo', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
+    try {
+        const { filtro, asunto, mensaje, correoManual, usuarioId } = req.body;
+
+        if (!asunto || !mensaje) {
+            return res.status(400).json({ success: false, message: 'Asunto y mensaje son requeridos.' });
+        }
+
+        let destinatarios = [];
+
+        // Caso 1: Correo manual externo
+        if (filtro === 'manual' && correoManual) {
+            destinatarios = [{ email: correoManual.toLowerCase(), name: 'Invitado Externo' }];
+        } 
+        // Caso 2: Un solo hermano específico
+        else if (filtro === 'individual' && usuarioId) {
+            const u = await Usuario.findById(usuarioId).select('nombre email');
+            if (!u || !u.email) {
+                return res.status(400).json({ success: false, message: 'El usuario seleccionado no existe o no tiene correo registrado.' });
+            }
+            destinatarios = [{ email: u.email, name: u.nombre }];
+        }
+        // Caso 3: Filtro grupal (Todos, Rol, Etapa)
+        else {
+            let query = { activo: true, email: { $exists: true, $ne: null } };
+            
+            if (filtro && filtro !== 'todos') {
+                if (['admin', 'consejo', 'miembro'].includes(filtro)) {
+                    query.rol = filtro;
+                } else if (['aspirante', 'iniciado', 'en_formacion', 'promesado'].includes(filtro)) {
+                    query.etapaFormacion = filtro;
+                }
+            }
+
+            const usuarios = await Usuario.find(query).select('nombre email');
+            if (usuarios.length === 0) {
+                return res.status(400).json({ success: false, message: 'No se encontraron destinatarios con correo registrado para este filtro.' });
+            }
+            destinatarios = usuarios.map(u => ({ email: u.email, name: u.nombre }));
+        }
+
+        // Usar Brevo API
+        if (process.env.BREVO_API_KEY) {
+            const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+                method: 'POST',
+                headers: {
+                    'accept': 'application/json',
+                    'api-key': process.env.BREVO_API_KEY,
+                    'content-type': 'application/json'
+                },
+                body: JSON.stringify({
+                    sender: {
+                        name: 'JUFRA App',
+                        email: process.env.EMAIL_USER || 'jufrapomalca@gmail.com'
+                    },
+                    to: destinatarios,
+                    subject: asunto,
+                    htmlContent: `
+                        <div style="font-family: sans-serif; line-height: 1.6; color: #333;">
+                            <div style="background: #624b2b; color: white; padding: 20px; text-align: center;">
+                                <h1>Comunicado JUFRA</h1>
+                            </div>
+                            <div style="padding: 20px; border: 1px solid #eee;">
+                                ${mensaje.replace(/\n/g, '<br>')}
+                            </div>
+                            <div style="padding: 10px; font-size: 11px; color: #777; text-align: center;">
+                                <p>Este es un correo oficial enviado desde el panel administrativo de JUFRA.</p>
+                            </div>
+                        </div>
+                    `
+                })
+            });
+
+            if (!response.ok) {
+                const errorData = await response.text();
+                console.error('Error de Brevo API:', errorData);
+                throw new Error('Falló el envío a través de Brevo API');
+            }
+
+            return res.status(200).json({ 
+                success: true, 
+                message: `Comunicado enviado exitosamente a ${usuarios.length} hermanos.` 
+            });
+        } else {
+            return res.status(500).json({ 
+                success: false, 
+                message: 'La configuración de envío de correos (Brevo) no está disponible en el servidor.' 
+            });
+        }
+    } catch (error) {
+        console.error('Error en envío masivo:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al enviar el comunicado masivo',
+            error: error.message
+        });
+    }
+});
+
 module.exports = router;
