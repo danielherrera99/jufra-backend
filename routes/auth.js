@@ -393,18 +393,6 @@ router.post('/recuperar-password', async (req, res) => {
 
         await usuario.save({ validateBeforeSave: false });
 
-        // Enviar correo
-        const nodemailer = require('nodemailer');
-        
-        // El transporter usa las variables de entorno configuradas
-        const transporter = nodemailer.createTransport({
-            service: 'gmail',
-            auth: {
-                user: process.env.EMAIL_USER || 'jufra.app@gmail.com',
-                pass: process.env.EMAIL_PASS || 'tu-contrasena-de-aplicacion'
-            }
-        });
-
         const mensaje = `
             <h2>Recuperación de Contraseña - JUFRA</h2>
             <p>Hola ${usuario.nombre},</p>
@@ -413,6 +401,54 @@ router.post('/recuperar-password', async (req, res) => {
             <p>Este código expira en 15 minutos.</p>
             <p>Si no fuiste tú, puedes ignorar este correo.</p>
         `;
+
+        // Usar Brevo API si está configurada (Recomendado para Render Free Tier)
+        if (process.env.BREVO_API_KEY) {
+            try {
+                const response = await fetch('https://api.brevo.com/v3/smtp/email', {
+                    method: 'POST',
+                    headers: {
+                        'accept': 'application/json',
+                        'api-key': process.env.BREVO_API_KEY,
+                        'content-type': 'application/json'
+                    },
+                    body: JSON.stringify({
+                        sender: {
+                            name: 'JUFRA App',
+                            email: process.env.EMAIL_USER || 'jufrapomalca@gmail.com'
+                        },
+                        to: [{ email: usuario.email, name: usuario.nombre }],
+                        subject: 'Código de Recuperación de Contraseña',
+                        htmlContent: mensaje
+                    })
+                });
+
+                if (!response.ok) {
+                    const errorData = await response.text();
+                    console.error('Error de Brevo API:', errorData);
+                    throw new Error('Falló el envío a través de Brevo API');
+                }
+
+                return res.status(200).json({ success: true, message: 'Código enviado al correo electrónico registrado.' });
+            } catch (err) {
+                console.error('Error enviando email con Brevo:', err);
+                usuario.resetPasswordCode = undefined;
+                usuario.resetPasswordExpire = undefined;
+                await usuario.save({ validateBeforeSave: false });
+                return res.status(500).json({ success: false, message: 'No se pudo enviar el correo. Verifica la configuración de Brevo.' });
+            }
+        }
+
+        // Fallback a Nodemailer (Funciona en local, pero Render bloquea el puerto 465)
+        const nodemailer = require('nodemailer');
+        
+        const transporter = nodemailer.createTransport({
+            service: 'gmail',
+            auth: {
+                user: process.env.EMAIL_USER || 'jufra.app@gmail.com',
+                pass: process.env.EMAIL_PASS || 'tu-contrasena-de-aplicacion'
+            }
+        });
 
         try {
             await transporter.sendMail({
@@ -424,7 +460,7 @@ router.post('/recuperar-password', async (req, res) => {
 
             res.status(200).json({ success: true, message: 'Código enviado al correo electrónico registrado.' });
         } catch (err) {
-            console.error('Error enviando email:', err);
+            console.error('Error enviando email con Nodemailer:', err);
             usuario.resetPasswordCode = undefined;
             usuario.resetPasswordExpire = undefined;
             await usuario.save({ validateBeforeSave: false });
