@@ -347,7 +347,7 @@ router.post('/comunicacion/masivo', proteger, autorizarRoles('admin', 'consejo')
 
             return res.status(200).json({ 
                 success: true, 
-                message: `Comunicado enviado exitosamente a ${usuarios.length} hermanos.` 
+                message: `Comunicado enviado exitosamente a ${destinatarios.length} destinatario(s).` 
             });
         } else {
             return res.status(500).json({ 
