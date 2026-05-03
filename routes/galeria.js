@@ -69,7 +69,7 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('ar
             });
         }
 
-        const { titulo, descripcion, fecha } = req.body;
+        const { titulo, descripcion, fecha, categoria } = req.body;
         const tipoArchivo = req.file.mimetype.startsWith('video/') ? 'video' : 'imagen';
         const archivoUrl = `${req.protocol}://${req.get('host')}/uploads/galeria/${req.file.filename}`;
 
@@ -77,6 +77,7 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('ar
             titulo,
             descripcion,
             fecha: fecha || Date.now(),
+            categoria: categoria || 'general',
             archivoUrl,
             tipoArchivo,
             subidoPor: req.usuario._id

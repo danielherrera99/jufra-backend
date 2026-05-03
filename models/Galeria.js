@@ -23,6 +23,10 @@ const GaleriaSchema = new mongoose.Schema({
         enum: ['imagen', 'video'],
         default: 'imagen'
     },
+    categoria: {
+        type: String,
+        default: 'general'
+    },
     subidoPor: {
         type: mongoose.Schema.Types.ObjectId,
         ref: 'Usuario',
