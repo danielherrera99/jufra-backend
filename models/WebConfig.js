@@ -37,6 +37,10 @@ const WebConfigSchema = new mongoose.Schema({
         type: String,
         default: '+51 981 574 685'
     },
+    mapQuery: {
+        type: String,
+        default: 'Parroquia San Juan Maria Vianney, Pomalca, Chiclayo'
+    },
     facebookUrl: { type: String, default: '' },
     instagramUrl: { type: String, default: '' },
     updatedAt: {
