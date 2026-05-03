@@ -57,6 +57,10 @@ const WebConfigSchema = new mongoose.Schema({
         type: String,
         default: 'Orden Franciscana Seglar: Viviendo el Evangelio en medio del mundo.'
     },
+    ofsMapQuery: {
+        type: String,
+        default: 'Convento San Antonio de Padua, Chiclayo, Perú'
+    },
     facebookUrl: { type: String, default: '' },
     instagramUrl: { type: String, default: '' },
     updatedAt: {
