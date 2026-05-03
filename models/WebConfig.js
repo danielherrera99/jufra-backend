@@ -41,6 +41,14 @@ const WebConfigSchema = new mongoose.Schema({
         type: String,
         default: 'Parroquia San Juan Maria Vianney, Pomalca, Chiclayo'
     },
+    familiaTitulo: {
+        type: String,
+        default: 'Fraternidad OFS Santa Isabel de Hungría - Chiclayo'
+    },
+    familiaDescripcion: {
+        type: String,
+        default: 'Caminamos junto a nuestros hermanos mayores de la Orden Franciscana Seglar, quienes nos acompañan y guían en nuestro camino de fe y servicio.'
+    },
     facebookUrl: { type: String, default: '' },
     instagramUrl: { type: String, default: '' },
     updatedAt: {
