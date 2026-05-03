@@ -76,6 +76,7 @@ app.use('/api/servicios', require('./routes/servicios'));
 app.use('/api/espiritualidad', require('./routes/espiritualidad'));
 app.use('/api/mensajes', require('./routes/mensajes'));
 app.use('/api/web-config', require('./routes/webConfig'));
+app.use('/api/ofs-config', require('./routes/ofsConfig'));
 
 // Ruta de prueba
 app.get('/', (req, res) => {
