@@ -336,9 +336,13 @@ router.post('/comunicacion/masivo', proteger, autorizarRoles('admin', 'consejo')
             });
 
             if (!response.ok) {
-                const errorData = await response.text();
-                console.error('Error de Brevo API:', errorData);
-                throw new Error('Falló el envío a través de Brevo API');
+                const errorData = await response.json();
+                console.error('Error detallado de Brevo:', errorData);
+                return res.status(response.status).json({
+                    success: false,
+                    message: 'Brevo API rechazó el envío',
+                    error: errorData.message || 'Error desconocido en el proveedor de correo'
+                });
             }
 
             return res.status(200).json({ 
