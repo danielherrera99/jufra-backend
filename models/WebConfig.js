@@ -49,6 +49,14 @@ const WebConfigSchema = new mongoose.Schema({
         type: String,
         default: 'Caminamos junto a nuestros hermanos mayores de la Orden Franciscana Seglar, quienes nos acompañan y guían en nuestro camino de fe y servicio.'
     },
+    ofsHeroTitle: {
+        type: String,
+        default: 'Fraternidad OFS Santa Isabel de Hungría'
+    },
+    ofsHeroSubtitle: {
+        type: String,
+        default: 'Orden Franciscana Seglar: Viviendo el Evangelio en medio del mundo.'
+    },
     facebookUrl: { type: String, default: '' },
     instagramUrl: { type: String, default: '' },
     updatedAt: {
