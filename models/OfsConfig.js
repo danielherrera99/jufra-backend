@@ -45,6 +45,10 @@ const OfsConfigSchema = new mongoose.Schema({
         type: Boolean,
         default: false
     },
+    bannerLink: {
+        type: String,
+        default: ''
+    },
     updatedAt: {
         type: Date,
         default: Date.now
