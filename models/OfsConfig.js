@@ -29,6 +29,22 @@ const OfsConfigSchema = new mongoose.Schema({
         type: String,
         default: '+51 979 948 528'
     },
+    bannerTitle: {
+        type: String,
+        default: ''
+    },
+    bannerDescription: {
+        type: String,
+        default: ''
+    },
+    bannerImage: {
+        type: String,
+        default: ''
+    },
+    bannerActive: {
+        type: Boolean,
+        default: false
+    },
     updatedAt: {
         type: Date,
         default: Date.now
