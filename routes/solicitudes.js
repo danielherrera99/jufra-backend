@@ -33,7 +33,7 @@ router.post('/', async (req, res) => {
 router.get('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
     try {
         const solicitudes = await Solicitud.find().sort({ createdAt: -1 });
-        res.json({ success: true, data: solicitudes });
+        res.json({ success: true, solicitudes });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: 'Error al obtener solicitudes' });
