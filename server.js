@@ -38,7 +38,6 @@ mongoose.connect(process.env.MONGODB_URI, {
                     password: '201599',
                     rol: 'admin',
                     cargo: 'coordinador',
-                    etapaFormacion: 'promesado',
                     email: 'admin@jufra.com',
                     activo: true
                 });
@@ -75,6 +74,7 @@ app.use('/api/galeria', require('./routes/galeria'));
 app.use('/api/servicios', require('./routes/servicios'));
 app.use('/api/espiritualidad', require('./routes/espiritualidad'));
 app.use('/api/mensajes', require('./routes/mensajes'));
+app.use('/api/solicitudes', require('./routes/solicitudes'));
 app.use('/api/web-config', require('./routes/webConfig'));
 app.use('/api/ofs-config', require('./routes/ofsConfig'));
 
