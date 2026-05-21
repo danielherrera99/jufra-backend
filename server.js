@@ -75,6 +75,7 @@ app.use('/api/servicios', require('./routes/servicios'));
 app.use('/api/espiritualidad', require('./routes/espiritualidad'));
 app.use('/api/mensajes', require('./routes/mensajes'));
 app.use('/api/solicitudes', require('./routes/solicitudes'));
+app.use('/api/fraternidades', require('./routes/fraternidades'));
 app.use('/api/web-config', require('./routes/webConfig'));
 app.use('/api/ofs-config', require('./routes/ofsConfig'));
 
