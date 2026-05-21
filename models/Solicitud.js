@@ -17,7 +17,7 @@ const SolicitudSchema = new mongoose.Schema({
     },
     estado: {
         type: String,
-        enum: ['pendiente', 'contactado'],
+        enum: ['pendiente', 'contactado', 'descartado'],
         default: 'pendiente'
     }
 }, {
