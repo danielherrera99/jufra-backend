@@ -63,6 +63,8 @@ const WebConfigSchema = new mongoose.Schema({
     },
     facebookUrl: { type: String, default: '' },
     instagramUrl: { type: String, default: '' },
+    whatsappUrl: { type: String, default: '' },
+    tiktokUrl: { type: String, default: '' },
     updatedAt: {
         type: Date,
         default: Date.now
