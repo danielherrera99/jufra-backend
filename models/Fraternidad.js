@@ -19,7 +19,7 @@ const FraternidadSchema = new mongoose.Schema({
     zona: {
         type: String,
         required: [true, 'La zona es obligatoria'],
-        enum: ['norte', 'centro', 'sur'],
+        enum: ['norte', 'centro', 'sur', 'sur_altiplano', 'lima_callao_sur_medio'],
         default: 'centro'
     },
     contacto: {
