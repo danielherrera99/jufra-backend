@@ -1,5 +1,4 @@
 const express = require('express');
-const mongoose = require('mongoose');
 const cors = require('cors');
 const dotenv = require('dotenv');
 
@@ -16,47 +15,51 @@ app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 app.use('/uploads', express.static('uploads'));
 
-// Conectar a MongoDB
-mongoose.connect(process.env.MONGODB_URI, {
-    useNewUrlParser: true,
-    useUnifiedTopology: true,
-})
+// Conectar a Supabase PostgreSQL y verificar usuario por defecto
+const db = require('./db');
+const bcrypt = require('bcryptjs');
+
+db.raw('SELECT 1')
     .then(async () => {
-        console.log('✅ MongoDB conectado exitosamente');
+        console.log('✅ Base de datos PostgreSQL conectada exitosamente');
 
         // Crear o actualizar usuario por defecto
         try {
-            const Usuario = require('./models/Usuario');
-            let usuarioJufra = await Usuario.findOne({ username: 'Jufra' });
+            const usuarioJufra = await db('usuarios').where('username', 'Jufra').first();
+            const salt = await bcrypt.genSalt(10);
+            const hashedPassword = await bcrypt.hash('201599', salt);
 
             if (!usuarioJufra) {
                 // Crear si no existe
-                usuarioJufra = new Usuario({
+                await db('usuarios').insert({
                     nombre: 'Administrador',
                     apellido: 'JUFRA',
                     username: 'Jufra',
-                    password: '201599',
+                    password: hashedPassword,
                     rol: 'admin',
                     cargo: 'coordinador',
                     email: 'admin@jufra.com',
                     activo: true
                 });
-                await usuarioJufra.save();
                 console.log('👤 Usuario por defecto "Jufra" creado exitosamente');
             } else {
                 // Actualizar contraseña si ya existe (para asegurar acceso)
-                usuarioJufra.password = '201599';
-                usuarioJufra.rol = 'admin'; // Asegurar rol admin
-                usuarioJufra.activo = true; // Asegurar que esté activo
-                if (!usuarioJufra.email) usuarioJufra.email = 'admin@jufra.com';
-                await usuarioJufra.save(); // Esto disparará el pre-save hook y hasheará el password
+                await db('usuarios').where('id', usuarioJufra.id).update({
+                    password: hashedPassword,
+                    rol: 'admin', // Asegurar rol admin
+                    activo: true, // Asegurar que esté activo
+                    email: usuarioJufra.email || 'admin@jufra.com',
+                    updated_at: new Date()
+                });
                 console.log('🔄 Usuario por defecto "Jufra" actualizado/verificado');
             }
         } catch (error) {
             console.error('❌ Error al gestionar usuario por defecto:', error);
         }
     })
-    .catch((err) => console.error('❌ Error al conectar MongoDB:', err));
+    .catch((err) => {
+        console.error('❌ Error al conectar a PostgreSQL:', err.message);
+    });
 
 // Rutas
 app.use('/api/auth', require('./routes/auth'));

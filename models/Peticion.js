@@ -1,32 +1,7 @@
-const mongoose = require('mongoose');
+const BaseModel = require('./BaseModel');
 
-const PeticionSchema = new mongoose.Schema({
-    contenido: {
-        type: String,
-        required: [true, 'El contenido de la petición es requerido'],
-        trim: true
-    },
-    autor: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Usuario',
-        required: true
-    },
-    oraciones: [{
-        usuario: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Usuario'
-        },
-        fecha: {
-            type: Date,
-            default: Date.now
-        }
-    }],
-    anonimo: {
-        type: Boolean,
-        default: false
-    }
-}, {
-    timestamps: true
-});
+const mappings = {
+    autor: 'autor_id'
+};
 
-module.exports = mongoose.model('Peticion', PeticionSchema);
+module.exports = new BaseModel('peticiones', mappings);

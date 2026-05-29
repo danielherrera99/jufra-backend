@@ -1,37 +1,9 @@
-const mongoose = require('mongoose');
+const BaseModel = require('./BaseModel');
 
-const DocumentoSchema = new mongoose.Schema({
-    titulo: {
-        type: String,
-        required: [true, 'El título es requerido'],
-        trim: true
-    },
-    descripcion: {
-        type: String,
-        trim: true
-    },
-    tipo: {
-        type: String,
-        enum: ['regla', 'ccgg', 'estatuto', 'formacion', 'otro'],
-        default: 'otro'
-    },
-    contenido: {
-        type: String,
-        // required: [true, 'El contenido es requerido'] // Hacemos opcional si hay archivo
-    },
-    archivoUrl: {
-        type: String
-    },
-    archivoNombre: {
-        type: String
-    },
-    creadoPor: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Usuario',
-        required: true
-    }
-}, {
-    timestamps: true
-});
+const mappings = {
+    archivoUrl: 'archivo_url',
+    archivoNombre: 'archivo_nombre',
+    creadoPor: 'creado_por'
+};
 
-module.exports = mongoose.model('Documento', DocumentoSchema);
+module.exports = new BaseModel('documentos', mappings);

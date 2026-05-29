@@ -1,52 +1,9 @@
-const mongoose = require('mongoose');
+const BaseModel = require('./BaseModel');
 
-const ActaSchema = new mongoose.Schema({
-    titulo: {
-        type: String,
-        required: [true, 'El título es requerido'],
-        trim: true
-    },
-    fecha: {
-        type: Date,
-        required: true,
-        default: Date.now
-    },
-    tipoReunion: {
-        type: String,
-        enum: ['consejo', 'fraternidad', 'formacion', 'extraordinaria'],
-        default: 'consejo'
-    },
-    contenido: {
-        type: String,
-        required: [true, 'El contenido es requerido']
-    },
-    asistentes: [{
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Usuario'
-    }],
-    archivoPDF: {
-        type: String, // URL del PDF
-        default: null
-    },
-    acuerdos: [{
-        descripcion: String,
-        responsable: {
-            type: mongoose.Schema.Types.ObjectId,
-            ref: 'Usuario'
-        },
-        fechaLimite: Date,
-        completado: {
-            type: Boolean,
-            default: false
-        }
-    }],
-    creadoPor: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Usuario',
-        required: true
-    }
-}, {
-    timestamps: true
-});
+const mappings = {
+    tipoReunion: 'tipo_reunion',
+    archivoPDF: 'archivo_pdf_url',
+    creadoPor: 'creado_por'
+};
 
-module.exports = mongoose.model('Acta', ActaSchema);
+module.exports = new BaseModel('actas', mappings);

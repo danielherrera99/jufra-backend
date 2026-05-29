@@ -1,39 +1,9 @@
-const mongoose = require('mongoose');
+const BaseModel = require('./BaseModel');
 
-const GaleriaSchema = new mongoose.Schema({
-    titulo: {
-        type: String,
-        required: [true, 'El título es requerido'],
-        trim: true
-    },
-    descripcion: {
-        type: String,
-        trim: true
-    },
-    fecha: {
-        type: Date,
-        default: Date.now
-    },
-    archivoUrl: {
-        type: String,
-        required: [true, 'El archivo es requerido']
-    },
-    tipoArchivo: {
-        type: String,
-        enum: ['imagen', 'video'],
-        default: 'imagen'
-    },
-    categoria: {
-        type: String,
-        default: 'general'
-    },
-    subidoPor: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Usuario',
-        required: true
-    }
-}, {
-    timestamps: true
-});
+const mappings = {
+    archivoUrl: 'archivo_url',
+    tipoArchivo: 'tipo_archivo',
+    subidoPor: 'subido_por'
+};
 
-module.exports = mongoose.model('Galeria', GaleriaSchema);
+module.exports = new BaseModel('galeria', mappings);

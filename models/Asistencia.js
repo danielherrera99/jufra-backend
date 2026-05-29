@@ -1,52 +1,11 @@
-const mongoose = require('mongoose');
+const BaseModel = require('./BaseModel');
 
-const AsistenciaSchema = new mongoose.Schema({
-    usuario: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Usuario',
-        required: false // Ahora opcional para permitir invitados
-    },
-    nombreInvitado: {
-        type: String,
-        trim: true // Para personas sin cuenta
-    },
-    fecha: {
-        type: Date,
-        required: true,
-        default: Date.now
-    },
-    tipoReunion: {
-        type: String,
-        enum: ['semanal', 'consejo', 'formacion', 'apostolado', 'especial'],
-        default: 'semanal'
-    },
-    presente: {
-        type: Boolean,
-        default: true
-    },
-    estado: {
-        type: String,
-        enum: ['presente', 'ausente', 'justificado', 'falta', 'permiso', 'tardanza'],
-        default: 'presente'
-    },
-    metodoRegistro: {
-        type: String,
-        enum: ['qr', 'manual', 'automatico', 'manual_web', 'manual_app'],
-        default: 'manual'
-    },
-    observaciones: {
-        type: String,
-        trim: true
-    },
-    registradoPor: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Usuario'
-    }
-}, {
-    timestamps: true
-});
+const mappings = {
+    nombreInvitado: 'nombre_invitado',
+    tipoReunion: 'tipo_reunion',
+    metodoRegistro: 'metodo_registro',
+    registradoPor: 'registrado_por',
+    usuario: 'usuario_id'
+};
 
-// Índice compuesto para evitar duplicados en hermanos (los invitados no usarán este índice para no chocar)
-AsistenciaSchema.index({ usuario: 1, fecha: 1, tipoReunion: 1 }, { unique: true, sparse: true, partialFilterExpression: { usuario: { $exists: true, $ne: null } } });
-
-module.exports = mongoose.model('Asistencia', AsistenciaSchema);
+module.exports = new BaseModel('asistencias', mappings);

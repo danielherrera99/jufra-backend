@@ -1,27 +1,8 @@
-const mongoose = require('mongoose');
+const BaseModel = require('./BaseModel');
 
-const MensajeSchema = new mongoose.Schema({
-    remitente: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Usuario',
-        required: true
-    },
-    destinatario: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Usuario',
-        required: true
-    },
-    contenido: {
-        type: String,
-        required: true,
-        trim: true
-    },
-    leido: {
-        type: Boolean,
-        default: false
-    }
-}, {
-    timestamps: true
-});
+const mappings = {
+    remitente: 'remitente_id',
+    destinatario: 'destinatario_id'
+};
 
-module.exports = mongoose.model('Mensaje', MensajeSchema);
+module.exports = new BaseModel('mensajes', mappings);

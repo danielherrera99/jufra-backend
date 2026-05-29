@@ -1,42 +1,9 @@
-const mongoose = require('mongoose');
+const BaseModel = require('./BaseModel');
 
-const FormacionSchema = new mongoose.Schema({
-    titulo: {
-        type: String,
-        required: [true, 'El título es requerido'],
-        trim: true
-    },
-    descripcion: {
-        type: String,
-        trim: true
-    },
-    contenido: {
-        type: String, // Puede ser texto largo o HTML básico
-        required: [true, 'El contenido es requerido']
-    },
-    fecha: {
-        type: Date,
-        default: Date.now
-    },
-    autor: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Usuario',
-        required: true
-    },
-    archivoUrl: {
-        type: String,
-        default: null
-    },
-    archivoNombre: {
-        type: String,
-        default: null
-    },
-    etiquetas: [{
-        type: String,
-        trim: true
-    }]
-}, {
-    timestamps: true
-});
+const mappings = {
+    autor: 'autor',
+    archivoUrl: 'archivo_url',
+    archivoNombre: 'archivo_nombre'
+};
 
-module.exports = mongoose.model('Formacion', FormacionSchema);
+module.exports = new BaseModel('formaciones', mappings);

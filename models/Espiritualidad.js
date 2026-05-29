@@ -1,28 +1,8 @@
-const mongoose = require('mongoose');
+const BaseModel = require('./BaseModel');
 
-const EspiritualidadSchema = new mongoose.Schema({
-    titulo: {
-        type: String,
-        required: true,
-        trim: true
-    },
-    contenido: {
-        type: String,
-        required: true
-    },
-    tipo: {
-        type: String,
-        enum: ['oracion', 'carisma'],
-        required: true
-    },
-    creadoPor: {
-        type: mongoose.Schema.Types.ObjectId,
-        ref: 'Usuario'
-    },
-    createdAt: {
-        type: Date,
-        default: Date.now
-    }
-});
+const mappings = {
+    creadoPor: 'creado_por',
+    createdAt: 'created_at'
+};
 
-module.exports = mongoose.model('Espiritualidad', EspiritualidadSchema);
+module.exports = new BaseModel('espiritualidad', mappings);
