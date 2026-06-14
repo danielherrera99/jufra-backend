@@ -146,7 +146,7 @@ class BaseModel {
 
         modelData.populate = async function(field, selectFields) {
             // Simular populado de relaciones comunes
-            if (field === 'usuario' || field === 'creadoPor' || field === 'autor' || field === 'subidoPor') {
+            if (field === 'usuario' || field === 'creadoPor' || field === 'autor' || field === 'subidoPor' || field === 'remitente' || field === 'destinatario') {
                 const foreignIdKey = self.mappings[field] || field;
                 const foreignId = this[foreignIdKey];
                 if (foreignId) {
