@@ -8,6 +8,58 @@ function toUUID(mongoId) {
     return `00000000-${str.substring(0, 4)}-${str.substring(4, 8)}-${str.substring(8, 12)}-${str.substring(12)}`;
 }
 
+class MongooseQueryMock {
+    constructor(knexQuery, self, isMany = true) {
+        this.knexQuery = knexQuery;
+        this.self = self;
+        this.isMany = isMany;
+        this.populates = [];
+    }
+
+    select() { return this; }
+
+    sort(sortObj) {
+        if (typeof sortObj === 'object') {
+            const [k, v] = Object.entries(sortObj)[0];
+            const pgKey = this.self.mappings[k] || k;
+            this.knexQuery = this.knexQuery.orderBy(pgKey, v === 1 || v === 'asc' ? 'asc' : 'desc');
+        } else if (typeof sortObj === 'function') {
+            this.memorySort = sortObj;
+        }
+        return this;
+    }
+
+    populate(field) {
+        this.populates.push(field);
+        return this;
+    }
+
+    then(resolve, reject) {
+        const executor = async () => {
+            const result = this.isMany ? await this.knexQuery : await this.knexQuery.first();
+            if (this.isMany) {
+                let models = result.map(r => this.self.fromPostgres(r));
+                if (this.memorySort) models.sort(this.memorySort);
+                for (const field of this.populates) {
+                    for (const m of models) if (m) await m.populate(field);
+                }
+                return models;
+            } else {
+                let model = this.self.fromPostgres(result);
+                for (const field of this.populates) {
+                    if (model) await model.populate(field);
+                }
+                return model;
+            }
+        };
+        return executor().then(resolve, reject);
+    }
+
+    catch(reject) {
+        return this.then(null, reject);
+    }
+}
+
 class BaseModel {
     constructor(tableName, mappings = {}) {
         this.tableName = tableName;
@@ -147,13 +199,14 @@ class BaseModel {
 
     // --- MÉTODOS DE CONSULTA ESTILO MONGOOSE ---
 
-    async findById(id) {
-        if (!id) return null;
-        const row = await db(this.tableName).where('id', toUUID(id)).first();
-        return this.fromPostgres(row);
+    findById(id) {
+        let knexQuery = db(this.tableName);
+        if (id) knexQuery = knexQuery.where('id', toUUID(id));
+        else knexQuery = knexQuery.whereRaw('1=0'); // Retornar vacío si no hay id
+        return new MongooseQueryMock(knexQuery, this, false);
     }
 
-    async findOne(query = {}) {
+    findOne(query = {}) {
         let knexQuery = db(this.tableName);
         
         // Traducir consultas simples
@@ -186,11 +239,10 @@ class BaseModel {
             }
         }
 
-        const row = await knexQuery.first();
-        return this.fromPostgres(row);
+        return new MongooseQueryMock(knexQuery, this, false);
     }
 
-    async find(query = {}) {
+    find(query = {}) {
         let knexQuery = db(this.tableName);
         
         // Traducir consultas
@@ -203,31 +255,7 @@ class BaseModel {
             knexQuery = knexQuery.where(pgKey, v);
         }
 
-        // Retornar un objeto de consulta encadenable estilo Mongoose (.select(), .sort(), etc.)
-        const self = this;
-        const queryPromise = knexQuery.then(rows => rows.map(r => self.fromPostgres(r)));
-
-        // Chaining mocks
-        queryPromise.select = function() { return this; };
-        queryPromise.sort = function(sortObj) {
-            if (typeof sortObj === 'object') {
-                const [k, v] = Object.entries(sortObj)[0];
-                const pgKey = self.mappings[k] || k;
-                knexQuery = knexQuery.orderBy(pgKey, v === 1 || v === 'asc' ? 'asc' : 'desc');
-            }
-            return this;
-        };
-        queryPromise.populate = function(field) {
-            // Mongoose populate delayed resolved
-            return this.then(async results => {
-                for (const r of results) {
-                    await r.populate(field);
-                }
-                return results;
-            });
-        };
-
-        return queryPromise;
+        return new MongooseQueryMock(knexQuery, this, true);
     }
 
     async create(data) {
