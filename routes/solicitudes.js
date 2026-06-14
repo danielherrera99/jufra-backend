@@ -8,7 +8,7 @@ const { proteger, autorizarRoles } = require('../middleware/auth');
 // @access  Public
 router.post('/', async (req, res) => {
     try {
-        const { nombre, edad, telefono } = req.body;
+        const { nombre, edad, telefono, mensaje } = req.body;
         
         if (!nombre || !edad || !telefono) {
             return res.status(400).json({ success: false, message: 'Faltan datos obligatorios' });
@@ -17,7 +17,8 @@ router.post('/', async (req, res) => {
         const nuevaSolicitud = await Solicitud.create({
             nombre,
             edad,
-            telefono
+            telefono,
+            mensaje
         });
 
         res.status(201).json({ success: true, data: nuevaSolicitud });
