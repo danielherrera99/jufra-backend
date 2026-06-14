@@ -22,14 +22,13 @@ router.get('/', async (req, res) => {
 router.post('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
     try {
         const { titulo, contenido, tipo, categoria } = req.body;
-        const newItem = new Espiritualidad({
+        const newItem = await Espiritualidad.create({
             titulo,
             contenido,
             tipo,
             categoria,
             creadoPor: req.usuario._id
         });
-        await newItem.save();
         res.status(201).json({ success: true, item: newItem });
     } catch (error) {
         console.error(error);

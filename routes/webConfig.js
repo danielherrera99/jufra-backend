@@ -11,8 +11,7 @@ router.get('/', async (req, res) => {
         let config = await WebConfig.findOne();
         if (!config) {
             // Si no existe, crear una por defecto
-            config = new WebConfig();
-            await config.save();
+            config = await WebConfig.create({});
         }
         res.json({ success: true, data: config });
     } catch (error) {
@@ -27,13 +26,13 @@ router.put('/', proteger, autorizarRoles('admin'), async (req, res) => {
     try {
         let config = await WebConfig.findOne();
         if (!config) {
-            config = new WebConfig(req.body);
+            config = await WebConfig.create(req.body);
         } else {
             // Actualizar campos
             Object.assign(config, req.body);
             config.updatedAt = Date.now();
+            await config.save();
         }
-        await config.save();
         res.json({ success: true, message: 'Configuración actualizada correctamente', data: config });
     } catch (error) {
         res.status(500).json({ success: false, message: error.message });
