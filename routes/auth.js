@@ -178,7 +178,7 @@ router.post('/login', [
         // Verificar si el usuario existe (sensible a mayúsculas/minúsculas)
         const isEmail = username.includes('@');
         const query = isEmail ? { email: username.toLowerCase() } : { username };
-        const usuario = await Usuario.findOne(query).select('+password');
+        const usuario = await Usuario.findOne(query);
 
         if (!usuario) {
             return res.status(401).json({
@@ -486,7 +486,7 @@ router.post('/verificar-codigo', async (req, res) => {
         const usuario = await Usuario.findOne({
             $or: [{ email: usernameOrEmail.toLowerCase() }, { username: usernameOrEmail }],
             resetPasswordExpire: { $gt: Date.now() }
-        }).select('+resetPasswordCode');
+        });
 
         if (!usuario) {
             return res.status(400).json({ success: false, message: 'Código inválido o ha expirado.' });
@@ -523,7 +523,7 @@ router.put('/reset-password', async (req, res) => {
         const usuario = await Usuario.findOne({
             $or: [{ email: usernameOrEmail.toLowerCase() }, { username: usernameOrEmail }],
             resetPasswordExpire: { $gt: Date.now() }
-        }).select('+resetPasswordCode');
+        });
 
         if (!usuario) {
             return res.status(400).json({ success: false, message: 'Código inválido o expirado.' });
