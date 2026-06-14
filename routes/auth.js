@@ -176,7 +176,9 @@ router.post('/login', [
         const { username, password } = req.body;
 
         // Verificar si el usuario existe (sensible a mayúsculas/minúsculas)
-        const usuario = await Usuario.findOne({ username }).select('+password');
+        const isEmail = username.includes('@');
+        const query = isEmail ? { email: username.toLowerCase() } : { username };
+        const usuario = await Usuario.findOne(query).select('+password');
 
         if (!usuario) {
             return res.status(401).json({
