@@ -21,11 +21,12 @@ router.get('/', async (req, res) => {
 // @access  Private (Admin/Consejo)
 router.post('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
     try {
-        const { titulo, contenido, tipo } = req.body;
+        const { titulo, contenido, tipo, categoria } = req.body;
         const newItem = new Espiritualidad({
             titulo,
             contenido,
             tipo,
+            categoria,
             creadoPor: req.usuario._id
         });
         await newItem.save();
@@ -41,13 +42,14 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) 
 // @access  Private (Admin/Consejo)
 router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
     try {
-        const { titulo, contenido, tipo } = req.body;
+        const { titulo, contenido, tipo, categoria } = req.body;
         let item = await Espiritualidad.findById(req.params.id);
         if (!item) return res.status(404).json({ success: false, message: 'No encontrado' });
 
         item.titulo = titulo || item.titulo;
         item.contenido = contenido || item.contenido;
         item.tipo = tipo || item.tipo;
+        if (categoria !== undefined) item.categoria = categoria;
 
         await item.save();
         res.json({ success: true, item });
