@@ -46,8 +46,16 @@ router.get('/', proteger, async (req, res) => {
         const hoy = new Date();
         hoy.setHours(0, 0, 0, 0);
 
-        const eventos = await Evento.find({ fecha: { $gte: hoy } })
-            .sort({ fecha: 1 })
+        let query = { fecha: { $gte: hoy } };
+        let sortOption = { fecha: 1 };
+
+        if (req.query.todos === 'true') {
+            query = {};
+            sortOption = { fecha: -1 }; // Descendente para ver los más recientes arriba
+        }
+
+        const eventos = await Evento.find(query)
+            .sort(sortOption)
             .populate('creadoPor', 'nombre apellido');
 
         res.status(200).json({
