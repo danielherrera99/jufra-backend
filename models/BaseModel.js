@@ -161,6 +161,8 @@ class BaseModel {
                             foto_url: u.foto_url,
                             nombreCompleto: `${u.nombre} ${u.apellido}`
                         };
+                    } else {
+                        this[field] = null;
                     }
                 }
             } else if (field === 'registradoPor') {
@@ -172,6 +174,8 @@ class BaseModel {
                         nombre: u.nombre,
                         apellido: u.apellido
                     };
+                } else {
+                    this[field] = null;
                 }
             } else if (field === 'asistentes') {
                 const rows = await db('acta_asistentes').where('acta_id', this.id);
