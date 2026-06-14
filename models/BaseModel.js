@@ -197,6 +197,66 @@ class BaseModel {
         return modelData;
     }
 
+    _applyQuery(knexQuery, query) {
+        if (!query || typeof query !== 'object') return knexQuery;
+        
+        const self = this;
+        const applyConditions = (builder, conds) => {
+            for (let [k, v] of Object.entries(conds)) {
+                if (k === '$or') {
+                    builder.where(function() {
+                        v.forEach((orCond, idx) => {
+                            if (idx === 0) this.where(b => applyConditions(b, orCond));
+                            else this.orWhere(b => applyConditions(b, orCond));
+                        });
+                    });
+                    continue;
+                }
+                if (k === '$and') {
+                    builder.where(function() {
+                        v.forEach(andCond => {
+                            this.where(b => applyConditions(b, andCond));
+                        });
+                    });
+                    continue;
+                }
+
+                const pgKey = self.mappings[k] || k;
+
+                if (v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date)) {
+                    for (let [op, opVal] of Object.entries(v)) {
+                        switch(op) {
+                            case '$exists':
+                                if (opVal) builder.whereNotNull(pgKey);
+                                else builder.whereNull(pgKey);
+                                break;
+                            case '$ne': builder.where(pgKey, '<>', opVal); break;
+                            case '$gt': builder.where(pgKey, '>', opVal); break;
+                            case '$gte': builder.where(pgKey, '>=', opVal); break;
+                            case '$lt': builder.where(pgKey, '<', opVal); break;
+                            case '$lte': builder.where(pgKey, '<=', opVal); break;
+                            case '$in': builder.whereIn(pgKey, opVal); break;
+                            case '$nin': builder.whereNotIn(pgKey, opVal); break;
+                            case '$regex':
+                                builder.where(pgKey, '~*', opVal);
+                                break;
+                            case '$options':
+                                break; 
+                            default:
+                                break;
+                        }
+                    }
+                } else if (Array.isArray(v)) {
+                    builder.whereIn(pgKey, v);
+                } else {
+                    builder.where(pgKey, v);
+                }
+            }
+        };
+        applyConditions(knexQuery, query);
+        return knexQuery;
+    };
+
     // --- MÉTODOS DE CONSULTA ESTILO MONGOOSE ---
 
     findById(id) {
@@ -208,53 +268,13 @@ class BaseModel {
 
     findOne(query = {}) {
         let knexQuery = db(this.tableName);
-        
-        // Traducir consultas simples
-        if (query.$or) {
-            knexQuery = knexQuery.where(function() {
-                query.$or.forEach((cond, idx) => {
-                    const [k, v] = Object.entries(cond)[0];
-                    const pgKey = this.mappings[k] || k;
-                    if (idx === 0) {
-                        this.where(pgKey, v);
-                    } else {
-                        this.orWhere(pgKey, v);
-                    }
-                });
-            });
-        } else {
-            for (let [k, v] of Object.entries(query)) {
-                const pgKey = this.mappings[k] || k;
-                if (v && typeof v === 'object' && v.$exists !== undefined) {
-                    if (v.$exists) {
-                        knexQuery = knexQuery.whereNotNull(pgKey);
-                    } else {
-                        knexQuery = knexQuery.whereNull(pgKey);
-                    }
-                } else if (v && typeof v === 'object' && v.$ne !== undefined) {
-                    knexQuery = knexQuery.where(pgKey, '<>', v.$ne);
-                } else {
-                    knexQuery = knexQuery.where(pgKey, v);
-                }
-            }
-        }
-
+        this._applyQuery(knexQuery, query);
         return new MongooseQueryMock(knexQuery, this, false);
     }
 
     find(query = {}) {
         let knexQuery = db(this.tableName);
-        
-        // Traducir consultas
-        for (let [k, v] of Object.entries(query)) {
-            if (k === 'activo') {
-                knexQuery = knexQuery.where('activo', v);
-                continue;
-            }
-            const pgKey = this.mappings[k] || k;
-            knexQuery = knexQuery.where(pgKey, v);
-        }
-
+        this._applyQuery(knexQuery, query);
         return new MongooseQueryMock(knexQuery, this, true);
     }
 
