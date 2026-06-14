@@ -63,9 +63,13 @@ class MongooseQueryMock {
 class BaseModel {
     constructor(tableName, mappings = {}) {
         this.tableName = tableName;
-        this.mappings = mappings; // Mapeos de camelCase (Mongoose) a snake_case (Postgres)
+        this.mappings = {
+            createdAt: 'created_at',
+            updatedAt: 'updated_at',
+            ...mappings
+        }; // Mapeos de camelCase (Mongoose) a snake_case (Postgres)
         this.reverseMappings = {};
-        for (const [k, v] of Object.entries(mappings)) {
+        for (const [k, v] of Object.entries(this.mappings)) {
             this.reverseMappings[v] = k;
         }
     }
