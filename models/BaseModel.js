@@ -34,6 +34,11 @@ class MongooseQueryMock {
         return this;
     }
 
+    limit(num) {
+        this.knexQuery = this.knexQuery.limit(num);
+        return this;
+    }
+
     then(resolve, reject) {
         const executor = async () => {
             const result = this.isMany ? await this.knexQuery : await this.knexQuery.first();
