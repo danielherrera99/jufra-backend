@@ -91,6 +91,13 @@ class BaseModel {
             // Ignorar virtuales o métodos
             if (typeof v === 'function') continue;
 
+            // Manejar ubicacion especial (lat/lng a latitud/longitud)
+            if (k === 'ubicacion' && v && typeof v === 'object') {
+                if (v.lat !== undefined) pgData.latitud = v.lat;
+                if (v.lng !== undefined) pgData.longitud = v.lng;
+                continue;
+            }
+
             pgData[pgKey] = v;
         }
         return pgData;
@@ -112,6 +119,14 @@ class BaseModel {
             if (modelKey !== k) {
                 modelData[k] = v;
             }
+        }
+
+        // Reconstruir objeto ubicacion si existen coordenadas
+        if (row.latitud !== undefined && row.longitud !== undefined && row.latitud !== null && row.longitud !== null) {
+            modelData.ubicacion = {
+                lat: parseFloat(row.latitud),
+                lng: parseFloat(row.longitud)
+            };
         }
 
         // Simular métodos básicos de documento Mongoose (como .save(), .populate())
