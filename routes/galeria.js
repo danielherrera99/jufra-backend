@@ -36,8 +36,8 @@ const upload = multer({
 
 // @route   GET /api/galeria
 // @desc    Obtener toda la galería
-// @access  Private
-router.get('/', proteger, async (req, res) => {
+// @access  Public
+router.get('/', async (req, res) => {
     try {
         const galeria = await Galeria.find()
             .sort({ fecha: -1 })

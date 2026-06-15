@@ -81,6 +81,7 @@ app.use('/api/solicitudes', require('./routes/solicitudes'));
 app.use('/api/fraternidades', require('./routes/fraternidades'));
 app.use('/api/web-config', require('./routes/webConfig'));
 app.use('/api/ofs-config', require('./routes/ofsConfig'));
+app.use('/api/redes', require('./routes/redes'));
 
 // Ruta de prueba
 app.get('/', (req, res) => {
