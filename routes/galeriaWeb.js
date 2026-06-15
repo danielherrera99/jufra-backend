@@ -2,6 +2,28 @@ const express = require('express');
 const router = express.Router();
 const GaleriaWeb = require('../models/GaleriaWeb');
 const { proteger, autorizarRoles } = require('../middleware/auth');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
+
+// Configurar almacenamiento de archivos
+const storage = multer.diskStorage({
+    destination: function (req, file, cb) {
+        const dir = 'uploads/galeria-web';
+        if (!fs.existsSync(dir)) {
+            fs.mkdirSync(dir, { recursive: true });
+        }
+        cb(null, dir);
+    },
+    filename: function (req, file, cb) {
+        cb(null, Date.now() + '-' + file.originalname);
+    }
+});
+
+const upload = multer({
+    storage: storage,
+    limits: { fileSize: 50 * 1024 * 1024 } // 50MB limit
+});
 
 // @route   GET /api/galeria-web
 // @desc    Obtener toda la galería web (pública)
@@ -25,16 +47,20 @@ router.get('/', async (req, res) => {
 });
 
 // @route   POST /api/galeria-web
-// @desc    Añadir foto o video a la galería web (por URL)
+// @desc    Añadir foto o video a la galería web
 // @access  Private (Admin/Consejo)
-router.post('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
+router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('imagen_file'), async (req, res) => {
     try {
-        const { titulo, descripcion, categoria, archivoUrl } = req.body;
+        let { titulo, descripcion, categoria, archivoUrl } = req.body;
+        
+        if (req.file) {
+            archivoUrl = `${req.protocol}://${req.get('host')}/uploads/galeria-web/${req.file.filename}`;
+        }
         
         if (!titulo || !archivoUrl) {
             return res.status(400).json({
                 success: false,
-                message: 'Por favor, proporciona al menos un título y la URL del archivo.'
+                message: 'Por favor, proporciona al menos un título y la imagen (por archivo o URL).'
             });
         }
 
@@ -63,7 +89,7 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) 
 // @route   PUT /api/galeria-web/:id
 // @desc    Editar item de la galería web
 // @access  Private (Admin/Consejo)
-router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
+router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), upload.single('imagen_file'), async (req, res) => {
     try {
         const item = await GaleriaWeb.findById(req.params.id);
 
@@ -71,7 +97,12 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res
             return res.status(404).json({ success: false, message: 'Item no encontrado' });
         }
 
-        const updatedItem = await GaleriaWeb.findByIdAndUpdate(req.params.id, req.body);
+        const payload = { ...req.body };
+        if (req.file) {
+            payload.archivoUrl = `${req.protocol}://${req.get('host')}/uploads/galeria-web/${req.file.filename}`;
+        }
+
+        const updatedItem = await GaleriaWeb.findByIdAndUpdate(req.params.id, payload);
 
         res.status(200).json({
             success: true,
