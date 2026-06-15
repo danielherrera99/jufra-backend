@@ -82,6 +82,7 @@ app.use('/api/fraternidades', require('./routes/fraternidades'));
 app.use('/api/web-config', require('./routes/webConfig'));
 app.use('/api/ofs-config', require('./routes/ofsConfig'));
 app.use('/api/redes', require('./routes/redes'));
+app.use('/api/galeria-web', require('./routes/galeriaWeb'));
 
 // Ruta de prueba
 app.get('/', (req, res) => {
