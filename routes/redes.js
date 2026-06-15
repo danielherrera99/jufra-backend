@@ -25,6 +25,11 @@ const upload = multer({
     limits: { fileSize: 10 * 1024 * 1024 } // 10MB limit
 });
 
+const cpUpload = upload.fields([
+    { name: 'imagen_file', maxCount: 1 },
+    { name: 'author_icon_file', maxCount: 1 }
+]);
+
 // @route   GET /api/redes
 // @desc    Obtener todas las publicaciones de redes sociales
 // @access  Public
@@ -41,12 +46,16 @@ router.get('/', async (req, res) => {
 // @route   POST /api/redes
 // @desc    Crear una nueva publicación
 // @access  Private (Admin/Consejo)
-router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('imagen_file'), async (req, res) => {
+router.post('/', proteger, autorizarRoles('admin', 'consejo'), cpUpload, async (req, res) => {
     try {
         const payload = { ...req.body };
         
-        if (req.file) {
-            payload.image_url = `${req.protocol}://${req.get('host')}/uploads/redes/${req.file.filename}`;
+        if (req.files && req.files['imagen_file']) {
+            payload.image_url = `${req.protocol}://${req.get('host')}/uploads/redes/${req.files['imagen_file'][0].filename}`;
+        }
+        
+        if (req.files && req.files['author_icon_file']) {
+            payload.author_icon = `${req.protocol}://${req.get('host')}/uploads/redes/${req.files['author_icon_file'][0].filename}`;
         }
 
         const nuevaPublicacion = await RedSocialPost.create(payload);
@@ -60,7 +69,7 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('im
 // @route   PUT /api/redes/:id
 // @desc    Actualizar una publicación
 // @access  Private (Admin/Consejo)
-router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), upload.single('imagen_file'), async (req, res) => {
+router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), cpUpload, async (req, res) => {
     try {
         let post = await RedSocialPost.findById(req.params.id);
         if (!post) {
@@ -68,8 +77,12 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), upload.single('
         }
 
         const payload = { ...req.body };
-        if (req.file) {
-            payload.image_url = `${req.protocol}://${req.get('host')}/uploads/redes/${req.file.filename}`;
+        if (req.files && req.files['imagen_file']) {
+            payload.image_url = `${req.protocol}://${req.get('host')}/uploads/redes/${req.files['imagen_file'][0].filename}`;
+        }
+        
+        if (req.files && req.files['author_icon_file']) {
+            payload.author_icon = `${req.protocol}://${req.get('host')}/uploads/redes/${req.files['author_icon_file'][0].filename}`;
         }
 
         const updatedPost = await RedSocialPost.findByIdAndUpdate(req.params.id, payload);
