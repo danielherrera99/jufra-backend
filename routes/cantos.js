@@ -57,7 +57,7 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo', 'animador', 'coord
         let archivoNombre = null;
 
         if (req.file) {
-            const driveFile = await uploadFileToDrive(req.file.buffer, req.file.originalname, req.file.mimetype);
+            const driveFile = await uploadFileToDrive(req.file.buffer, req.file.originalname, req.file.mimetype, 'cantos');
             archivoUrl = driveFile.webViewLink; // O usar directLink si se necesita
             archivoNombre = req.file.originalname;
         }
@@ -118,7 +118,7 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo', 'animador', 'coo
         const datosActualizar = { ...req.body };
 
         if (req.file) {
-            const driveFile = await uploadFileToDrive(req.file.buffer, req.file.originalname, req.file.mimetype);
+            const driveFile = await uploadFileToDrive(req.file.buffer, req.file.originalname, req.file.mimetype, 'cantos');
             datosActualizar.archivoUrl = driveFile.webViewLink;
             datosActualizar.archivoNombre = req.file.originalname;
         }

@@ -17,19 +17,64 @@ auth.setCredentials({
 const drive = google.drive({ version: 'v3', auth });
 
 /**
+ * Obtiene o crea una subcarpeta dentro de FOLDER_ID.
+ * @param {String} folderName Nombre de la carpeta
+ * @returns {Promise<String>} ID de la carpeta
+ */
+const getOrCreateFolder = async (folderName) => {
+    try {
+        if (!folderName) return FOLDER_ID; // Si no se especifica, usa la raíz compartida
+
+        // Buscar si la carpeta ya existe
+        const query = `mimeType='application/vnd.google-apps.folder' and name='${folderName}' and '${FOLDER_ID}' in parents and trashed=false`;
+        const res = await drive.files.list({
+            q: query,
+            fields: 'files(id, name)',
+            spaces: 'drive',
+        });
+
+        if (res.data.files && res.data.files.length > 0) {
+            // Ya existe, devolver su ID
+            return res.data.files[0].id;
+        }
+
+        // Si no existe, crearla
+        const fileMetadata = {
+            name: folderName,
+            mimeType: 'application/vnd.google-apps.folder',
+            parents: [FOLDER_ID]
+        };
+
+        const folder = await drive.files.create({
+            resource: fileMetadata,
+            fields: 'id'
+        });
+
+        return folder.data.id;
+    } catch (error) {
+        console.error('Error al obtener o crear carpeta:', error);
+        // Si falla (por ejemplo, timeout), guardamos en el root como fallback
+        return FOLDER_ID; 
+    }
+};
+
+/**
  * Sube un archivo PDF a Google Drive.
  * @param {Buffer} fileBuffer Buffer del archivo PDF
  * @param {String} fileName Nombre del archivo a crear en Drive
+ * @param {String} [folderName] Nombre opcional de la subcarpeta
  * @returns {Promise<String>} Enlace de vista del archivo creado
  */
-const uploadPdfToDrive = async (fileBuffer, fileName) => {
+const uploadPdfToDrive = async (fileBuffer, fileName, folderName = null) => {
     try {
         const bufferStream = new stream.PassThrough();
         bufferStream.end(fileBuffer);
 
+        const targetFolderId = await getOrCreateFolder(folderName);
+
         const fileMetadata = {
             name: fileName,
-            parents: [FOLDER_ID],
+            parents: [targetFolderId],
         };
 
         const media = {
@@ -72,16 +117,19 @@ const uploadPdfToDrive = async (fileBuffer, fileName) => {
  * @param {Buffer} fileBuffer Buffer del archivo
  * @param {String} fileName Nombre del archivo a crear en Drive
  * @param {String} mimeType Tipo MIME del archivo
+ * @param {String} [folderName] Nombre opcional de la subcarpeta
  * @returns {Promise<Object>} Enlaces del archivo { webViewLink, webContentLink, directLink }
  */
-const uploadFileToDrive = async (fileBuffer, fileName, mimeType) => {
+const uploadFileToDrive = async (fileBuffer, fileName, mimeType, folderName = null) => {
     try {
         const bufferStream = new stream.PassThrough();
         bufferStream.end(fileBuffer);
 
+        const targetFolderId = await getOrCreateFolder(folderName);
+
         const fileMetadata = {
             name: fileName,
-            parents: [FOLDER_ID],
+            parents: [targetFolderId],
         };
 
         const media = {

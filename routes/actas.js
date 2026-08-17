@@ -34,7 +34,7 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) 
             const safeTitle = acta.titulo.replace(/[^a-zA-Z0-9]/g, '_');
             const pdfFileName = `Acta_${fechaLimpia}_${safeTitle}.pdf`;
             
-            const driveLink = await uploadPdfToDrive(pdfBuffer, pdfFileName);
+            const driveLink = await uploadPdfToDrive(pdfBuffer, pdfFileName, 'actas');
             
             // Actualizar el acta con el link
             acta.archivoPDF = driveLink;
@@ -159,7 +159,7 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res
             const safeTitle = acta.titulo.replace(/[^a-zA-Z0-9]/g, '_');
             const pdfFileName = `Acta_Actualizada_${fechaLimpia}_${safeTitle}.pdf`;
             
-            const driveLink = await uploadPdfToDrive(pdfBuffer, pdfFileName);
+            const driveLink = await uploadPdfToDrive(pdfBuffer, pdfFileName, 'actas');
             
             acta.archivoPDF = driveLink;
             await acta.save();
