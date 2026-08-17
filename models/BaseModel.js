@@ -99,6 +99,12 @@ class BaseModel {
             // Ignorar campos virtuales y claves primarias redundantes
             if (k === 'nombreCompleto' || k === 'id' || k === '_id') continue;
 
+            // Evitar que el valor antiguo en snake_case (ej. foto_url) 
+            // sobreescriba el valor nuevo actualizado en camelCase (ej. foto)
+            if (this.reverseMappings[k] && data[this.reverseMappings[k]] !== undefined && k !== this.reverseMappings[k]) {
+                continue;
+            }
+
             // Manejar ubicacion especial (lat/lng a latitud/longitud)
             if (k === 'ubicacion' && v && typeof v === 'object') {
                 if (v.lat !== undefined) pgData.latitud = v.lat;
