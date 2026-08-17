@@ -7,20 +7,23 @@ const { enviarNotificacionGrupal } = require('../utils/expoPush');
 
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Configurar almacenamiento de archivos
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const dir = 'uploads/eventos';
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        cb(null, dir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Configurar almacenamiento de archivos en Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'jufra_eventos',
+    allowed_formats: ['jpg', 'png', 'jpeg'],
+    public_id: (req, file) => `evento-${Date.now()}`,
+  },
 });
 
 const fileFilter = (req, file, cb) => {
@@ -82,7 +85,7 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo', 'coordinador'), up
         let imagenUrl = null;
 
         if (req.file) {
-            imagenUrl = `${req.protocol}://${req.get('host')}/uploads/eventos/${req.file.filename}`;
+            imagenUrl = req.file.path;
         }
 
         const eventoData = {
@@ -172,7 +175,7 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo', 'coordinador'), 
         const camposActualizar = { ...req.body };
 
         if (req.file) {
-            camposActualizar.imagenUrl = `${req.protocol}://${req.get('host')}/uploads/eventos/${req.file.filename}`;
+            camposActualizar.imagenUrl = req.file.path;
         }
 
         if (req.body.lat && req.body.lng) {

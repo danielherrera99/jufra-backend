@@ -4,20 +4,23 @@ const OfsConfig = require('../models/OfsConfig');
 const { proteger, autorizarRoles } = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Configurar almacenamiento para el banner de la OFS
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const dir = 'uploads/ofs';
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        cb(null, dir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, 'banner-ofs-' + Date.now() + path.extname(file.originalname));
-    }
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Configurar almacenamiento para el banner de la OFS en Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'jufra_ofs',
+    allowed_formats: ['jpg', 'png', 'jpeg'],
+    public_id: (req, file) => `banner-ofs-${Date.now()}`,
+  },
 });
 
 const upload = multer({
@@ -54,9 +57,9 @@ router.put('/', proteger, autorizarRoles('admin'), upload.single('bannerFile'), 
     try {
         const updateData = { ...req.body };
         
-        // Si se subió un archivo, generar la URL
+        // Si se subió un archivo, usar URL de Cloudinary
         if (req.file) {
-            updateData.bannerImage = `${req.protocol}://${req.get('host')}/uploads/ofs/${req.file.filename}`;
+            updateData.bannerImage = req.file.path;
         }
 
         // Convertir string de bannerActive a boolean si viene de FormData

@@ -4,20 +4,23 @@ const Servicio = require('../models/Servicio');
 const { proteger, autorizarRoles } = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Configurar multer para subida de imágenes
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const dir = 'uploads/servicios';
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        cb(null, dir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, 'servicio-' + Date.now() + path.extname(file.originalname));
-    }
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Configurar multer para subida de imágenes a Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'jufra_servicios',
+    allowed_formats: ['jpg', 'png', 'jpeg'],
+    public_id: (req, file) => `servicio-${Date.now()}`,
+  },
 });
 
 const fileFilter = (req, file, cb) => {
@@ -66,7 +69,7 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('im
 
         let imagen = null;
         if (req.file) {
-            imagen = `${req.protocol}://${req.get('host')}/uploads/servicios/${req.file.filename}`;
+            imagen = req.file.path; // Cloudinary URL
         }
 
         const servicioData = {

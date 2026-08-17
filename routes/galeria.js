@@ -4,20 +4,23 @@ const Galeria = require('../models/Galeria');
 const { proteger, autorizarRoles } = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Configurar almacenamiento de archivos
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const dir = 'uploads/galeria';
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        cb(null, dir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Configurar almacenamiento de archivos en Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'jufra_galeria',
+    resource_type: 'auto', // Permite imágenes y videos
+    public_id: (req, file) => `galeria-${Date.now()}`,
+  },
 });
 
 const fileFilter = (req, file, cb) => {
@@ -71,7 +74,7 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('ar
 
         const { titulo, descripcion, fecha, categoria } = req.body;
         const tipoArchivo = req.file.mimetype.startsWith('video/') ? 'video' : 'imagen';
-        const archivoUrl = `${req.protocol}://${req.get('host')}/uploads/galeria/${req.file.filename}`;
+        const archivoUrl = req.file.path;
 
         const item = await Galeria.create({
             titulo,

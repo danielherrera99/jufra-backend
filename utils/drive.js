@@ -67,6 +67,65 @@ const uploadPdfToDrive = async (fileBuffer, fileName) => {
     }
 };
 
+/**
+ * Sube un archivo genérico a Google Drive.
+ * @param {Buffer} fileBuffer Buffer del archivo
+ * @param {String} fileName Nombre del archivo a crear en Drive
+ * @param {String} mimeType Tipo MIME del archivo
+ * @returns {Promise<Object>} Enlaces del archivo { webViewLink, webContentLink, directLink }
+ */
+const uploadFileToDrive = async (fileBuffer, fileName, mimeType) => {
+    try {
+        const bufferStream = new stream.PassThrough();
+        bufferStream.end(fileBuffer);
+
+        const fileMetadata = {
+            name: fileName,
+            parents: [FOLDER_ID],
+        };
+
+        const media = {
+            mimeType: mimeType,
+            body: bufferStream,
+        };
+
+        const response = await drive.files.create({
+            resource: fileMetadata,
+            media: media,
+            fields: 'id, webViewLink, webContentLink'
+        });
+
+        const fileId = response.data.id;
+        
+        // Dar permiso de vista publica o lectura a quien tenga el link por si acaso
+        await drive.permissions.create({
+            fileId: fileId,
+            requestBody: {
+                role: 'reader',
+                type: 'anyone',
+            }
+        });
+
+        // Obtener el enlace actualizado
+        const result = await drive.files.get({
+            fileId: fileId,
+            fields: 'webViewLink, webContentLink'
+        });
+
+        return {
+            id: fileId,
+            webViewLink: result.data.webViewLink,
+            webContentLink: result.data.webContentLink,
+            directLink: `https://drive.google.com/uc?id=${fileId}`
+        };
+    } catch (error) {
+        console.error('Error al subir a Google Drive:', error);
+        throw error;
+    }
+};
+
+
 module.exports = {
-    uploadPdfToDrive
+    uploadPdfToDrive,
+    uploadFileToDrive
 };

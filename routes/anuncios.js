@@ -7,20 +7,23 @@ const { enviarNotificacionGrupal } = require('../utils/expoPush');
 
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
-// Configurar almacenamiento de archivos
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const dir = 'uploads/anuncios';
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        cb(null, dir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
+// Configurar almacenamiento de archivos en Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'jufra_anuncios',
+    allowed_formats: ['jpg', 'png', 'jpeg'],
+    public_id: (req, file) => `anuncio-${Date.now()}`,
+  },
 });
 
 const fileFilter = (req, file, cb) => {
@@ -46,7 +49,7 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('im
 
         let imagen = null;
         if (req.file) {
-            imagen = `${req.protocol}://${req.get('host')}/uploads/anuncios/${req.file.filename}`;
+            imagen = req.file.path;
         } else if (req.body.imagen) {
             // Handle case where image URL is passed directly (though less common with file upload)
             imagen = req.body.imagen;
@@ -222,7 +225,7 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), upload.single('
         const camposActualizar = { ...req.body };
 
         if (req.file) {
-            camposActualizar.imagen = `${req.protocol}://${req.get('host')}/uploads/anuncios/${req.file.filename}`;
+            camposActualizar.imagen = req.file.path;
         }
 
         if (req.body.lat && req.body.lng) {

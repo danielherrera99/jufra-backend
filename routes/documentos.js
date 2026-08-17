@@ -27,21 +27,10 @@ router.get('/', proteger, async (req, res) => {
 
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+const { uploadFileToDrive } = require('../utils/drive');
 
-// Configuración de Multer
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const dir = 'uploads/documentos';
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        cb(null, dir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, 'doc-' + Date.now() + path.extname(file.originalname));
-    }
-});
+// Configuración de Multer en memoria
+const storage = multer.memoryStorage();
 
 const upload = multer({
     storage: storage,
@@ -82,7 +71,8 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('ar
         };
 
         if (req.file) {
-            documentoData.archivoUrl = `/uploads/documentos/${req.file.filename}`;
+            const driveFile = await uploadFileToDrive(req.file.buffer, req.file.originalname, req.file.mimetype);
+            documentoData.archivoUrl = driveFile.webViewLink;
             documentoData.archivoNombre = req.file.originalname;
         }
 
@@ -135,7 +125,8 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), upload.single('
         const datosActualizar = { ...req.body };
 
         if (req.file) {
-            datosActualizar.archivoUrl = `/uploads/documentos/${req.file.filename}`;
+            const driveFile = await uploadFileToDrive(req.file.buffer, req.file.originalname, req.file.mimetype);
+            datosActualizar.archivoUrl = driveFile.webViewLink;
             datosActualizar.archivoNombre = req.file.originalname;
         }
 

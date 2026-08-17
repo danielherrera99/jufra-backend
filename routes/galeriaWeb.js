@@ -3,21 +3,25 @@ const router = express.Router();
 const GaleriaWeb = require('../models/GaleriaWeb');
 const { proteger, autorizarRoles } = require('../middleware/auth');
 const multer = require('multer');
-const fs = require('fs');
 const path = require('path');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 // Configurar almacenamiento de archivos
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const dir = 'uploads/galeria-web';
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        cb(null, dir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
+// Configurar almacenamiento de archivos en Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'jufra_galeria_web',
+    resource_type: 'auto',
+    public_id: (req, file) => `galeria-web-${Date.now()}`,
+  },
 });
 
 const upload = multer({
@@ -54,7 +58,7 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('im
         let { titulo, descripcion, categoria, archivoUrl } = req.body;
         
         if (req.file) {
-            archivoUrl = `${req.protocol}://${req.get('host')}/uploads/galeria-web/${req.file.filename}`;
+            archivoUrl = req.file.path;
         }
         
         if (!titulo || !archivoUrl) {
@@ -99,7 +103,7 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), upload.single('
 
         const payload = { ...req.body };
         if (req.file) {
-            payload.archivoUrl = `${req.protocol}://${req.get('host')}/uploads/galeria-web/${req.file.filename}`;
+            payload.archivoUrl = req.file.path;
         }
 
         const updatedItem = await GaleriaWeb.findByIdAndUpdate(req.params.id, payload);

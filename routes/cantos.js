@@ -4,21 +4,10 @@ const Canto = require('../models/Canto');
 const { proteger, autorizarRoles } = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
-const fs = require('fs');
+const { uploadFileToDrive } = require('../utils/drive');
 
-// Configurar almacenamiento de archivos
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const dir = 'uploads/cantos';
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        cb(null, dir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
-});
+// Configurar almacenamiento en memoria
+const storage = multer.memoryStorage();
 
 const fileFilter = (req, file, cb) => {
     // Aceptar documentos y audios
@@ -68,7 +57,8 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo', 'animador', 'coord
         let archivoNombre = null;
 
         if (req.file) {
-            archivoUrl = `${req.protocol}://${req.get('host')}/uploads/cantos/${req.file.filename}`;
+            const driveFile = await uploadFileToDrive(req.file.buffer, req.file.originalname, req.file.mimetype);
+            archivoUrl = driveFile.webViewLink; // O usar directLink si se necesita
             archivoNombre = req.file.originalname;
         }
 
@@ -128,7 +118,8 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo', 'animador', 'coo
         const datosActualizar = { ...req.body };
 
         if (req.file) {
-            datosActualizar.archivoUrl = `${req.protocol}://${req.get('host')}/uploads/cantos/${req.file.filename}`;
+            const driveFile = await uploadFileToDrive(req.file.buffer, req.file.originalname, req.file.mimetype);
+            datosActualizar.archivoUrl = driveFile.webViewLink;
             datosActualizar.archivoNombre = req.file.originalname;
         }
 

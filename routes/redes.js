@@ -3,21 +3,25 @@ const router = express.Router();
 const RedSocialPost = require('../models/RedSocialPost');
 const { proteger, autorizarRoles } = require('../middleware/auth');
 const multer = require('multer');
-const fs = require('fs');
 const path = require('path');
+const cloudinary = require('cloudinary').v2;
+const { CloudinaryStorage } = require('multer-storage-cloudinary');
+
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 
 // Configurar almacenamiento de archivos
-const storage = multer.diskStorage({
-    destination: function (req, file, cb) {
-        const dir = 'uploads/redes';
-        if (!fs.existsSync(dir)) {
-            fs.mkdirSync(dir, { recursive: true });
-        }
-        cb(null, dir);
-    },
-    filename: function (req, file, cb) {
-        cb(null, Date.now() + '-' + file.originalname);
-    }
+// Configurar almacenamiento de archivos en Cloudinary
+const storage = new CloudinaryStorage({
+  cloudinary: cloudinary,
+  params: {
+    folder: 'jufra_redes',
+    allowed_formats: ['jpg', 'png', 'jpeg'],
+    public_id: (req, file) => `redes-${Date.now()}-${Math.floor(Math.random() * 1000)}`,
+  },
 });
 
 const upload = multer({
@@ -51,11 +55,11 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), cpUpload, async (
         const payload = { ...req.body };
         
         if (req.files && req.files['imagen_file']) {
-            payload.image_url = `${req.protocol}://${req.get('host')}/uploads/redes/${req.files['imagen_file'][0].filename}`;
+            payload.image_url = req.files['imagen_file'][0].path;
         }
         
         if (req.files && req.files['author_icon_file']) {
-            payload.author_icon = `${req.protocol}://${req.get('host')}/uploads/redes/${req.files['author_icon_file'][0].filename}`;
+            payload.author_icon = req.files['author_icon_file'][0].path;
         }
 
         const nuevaPublicacion = await RedSocialPost.create(payload);
@@ -78,11 +82,11 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), cpUpload, async
 
         const payload = { ...req.body };
         if (req.files && req.files['imagen_file']) {
-            payload.image_url = `${req.protocol}://${req.get('host')}/uploads/redes/${req.files['imagen_file'][0].filename}`;
+            payload.image_url = req.files['imagen_file'][0].path;
         }
         
         if (req.files && req.files['author_icon_file']) {
-            payload.author_icon = `${req.protocol}://${req.get('host')}/uploads/redes/${req.files['author_icon_file'][0].filename}`;
+            payload.author_icon = req.files['author_icon_file'][0].path;
         }
 
         const updatedPost = await RedSocialPost.findByIdAndUpdate(req.params.id, payload);
