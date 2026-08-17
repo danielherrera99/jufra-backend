@@ -173,16 +173,22 @@ class BaseModel {
                     } else {
                         this[field] = null;
                     }
+                } else {
+                    this[field] = null;
                 }
             } else if (field === 'registradoPor') {
-                const u = await db('usuarios').where('id', this.registrado_por).first();
-                if (u) {
-                    this[field] = {
-                        _id: u.id,
-                        id: u.id,
-                        nombre: u.nombre,
-                        apellido: u.apellido
-                    };
+                if (this.registrado_por) {
+                    const u = await db('usuarios').where('id', this.registrado_por).first();
+                    if (u) {
+                        this[field] = {
+                            _id: u.id,
+                            id: u.id,
+                            nombre: u.nombre,
+                            apellido: u.apellido
+                        };
+                    } else {
+                        this[field] = null;
+                    }
                 } else {
                     this[field] = null;
                 }
