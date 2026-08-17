@@ -267,7 +267,10 @@ class BaseModel {
                                 if (opVal) builder.whereNotNull(pgKey);
                                 else builder.whereNull(pgKey);
                                 break;
-                            case '$ne': builder.where(pgKey, '<>', opVal); break;
+                            case '$ne': 
+                                if (opVal === null) builder.whereNotNull(pgKey);
+                                else builder.where(pgKey, '<>', opVal); 
+                                break;
                             case '$gt': builder.where(pgKey, '>', opVal); break;
                             case '$gte': builder.where(pgKey, '>=', opVal); break;
                             case '$lt': builder.where(pgKey, '<', opVal); break;
