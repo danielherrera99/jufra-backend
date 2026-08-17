@@ -236,7 +236,7 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), upload.single('
             req.params.id,
             camposActualizar,
             { new: true, runValidators: true }
-        ).populate('autor', 'nombre apellido cargo foto');
+        );
 
         if (!anuncio) {
             return res.status(404).json({
@@ -244,6 +244,12 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), upload.single('
                 message: 'Anuncio no encontrado'
             });
         }
+
+        if (anuncio.populate) {
+            await anuncio.populate('autor', 'nombre apellido cargo foto');
+        }
+
+
 
         res.status(200).json({
             success: true,
