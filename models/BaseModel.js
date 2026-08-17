@@ -208,6 +208,22 @@ class BaseModel {
                 } else {
                     this.asistentes = [];
                 }
+            } else if (field === 'participantes') {
+                const rows = await db('servicio_participantes').where('servicio_id', this.id);
+                const userIds = rows.map(r => r.usuario_id);
+                if (userIds.length > 0) {
+                    const users = await db('usuarios').whereIn('id', userIds);
+                    this.participantes = users.map(u => ({
+                        _id: u.id,
+                        id: u.id,
+                        nombre: u.nombre,
+                        apellido: u.apellido,
+                        foto: u.foto_url,
+                        nombreCompleto: `${u.nombre} ${u.apellido}`
+                    }));
+                } else {
+                    this.participantes = [];
+                }
             } else if (field === 'acuerdos') {
                 const agreements = await db('acuerdos').where('acta_id', this.id);
                 for (const ac of agreements) {

@@ -1,6 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Servicio = require('../models/Servicio');
+const db = require('../db');
 const { proteger, autorizarRoles } = require('../middleware/auth');
 const multer = require('multer');
 const path = require('path');
@@ -117,34 +118,50 @@ router.put('/:id/participar', proteger, async (req, res) => {
         }
 
         // Verificar si ya está inscrito
-        const index = servicio.participantes.indexOf(req.usuario._id);
+        const participacion = await db('servicio_participantes')
+            .where({ servicio_id: req.params.id, usuario_id: req.usuario._id })
+            .first();
 
-        if (index !== -1) {
+        if (participacion) {
             // Ya está inscrito, desinscribir
-            servicio.participantes.splice(index, 1);
-            await servicio.save();
+            await db('servicio_participantes')
+                .where({ servicio_id: req.params.id, usuario_id: req.usuario._id })
+                .del();
+                
+            const servicioDoc = await Servicio.findById(req.params.id).populate('participantes');
             return res.status(200).json({
                 success: true,
                 message: 'Te has desinscrito del servicio',
                 inscrito: false,
-                servicio
+                servicio: servicioDoc
             });
         } else {
             // No está inscrito, verificar cupo
-            if (servicio.cupoMaximo > 0 && servicio.participantes.length >= servicio.cupoMaximo) {
+            const numParticipantesResult = await db('servicio_participantes')
+                .where('servicio_id', req.params.id)
+                .count('usuario_id as count')
+                .first();
+            const numParticipantes = parseInt(numParticipantesResult.count);
+
+            if (servicio.cupoMaximo > 0 && numParticipantes >= servicio.cupoMaximo) {
                 return res.status(400).json({
                     success: false,
                     message: 'El cupo para este servicio está lleno'
                 });
             }
 
-            servicio.participantes.push(req.usuario._id);
-            await servicio.save();
+            // Inscribir
+            await db('servicio_participantes').insert({
+                servicio_id: req.params.id,
+                usuario_id: req.usuario._id
+            });
+
+            const servicioDoc = await Servicio.findById(req.params.id).populate('participantes');
             return res.status(200).json({
                 success: true,
                 message: 'Te has inscrito al servicio correctamente',
                 inscrito: true,
-                servicio
+                servicio: servicioDoc
             });
         }
     } catch (error) {
