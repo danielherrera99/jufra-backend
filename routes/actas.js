@@ -136,9 +136,7 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res
             req.params.id,
             req.body,
             { new: true, runValidators: true }
-        ).populate('asistentes', 'nombre apellido foto')
-            .populate('acuerdos.responsable', 'nombre apellido')
-            .populate('creadoPor', 'nombre apellido');
+        );
 
         if (!acta) {
             return res.status(404).json({
@@ -146,6 +144,13 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res
                 message: 'Acta no encontrada'
             });
         }
+
+        if (acta.populate) {
+            await acta.populate('asistentes', 'nombre apellido foto');
+            await acta.populate('acuerdos.responsable', 'nombre apellido');
+            await acta.populate('creadoPor', 'nombre apellido');
+        }
+
 
         // --- Regenerar PDF y subir a Google Drive actualizando el archivoPDF ---
         try {
