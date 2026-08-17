@@ -21,42 +21,49 @@ const enviarNotificacionGrupal = async (tokens, titulo, mensaje, data = {}) => {
     }));
 
     // Use native https for broader Node version compatibility
-    return new Promise((resolve, reject) => {
-        const body = JSON.stringify(messages);
-        const req = https.request({
-            hostname: 'exp.host',
-            port: 443,
-            path: '/--/api/v2/push/send',
-            method: 'POST',
-            headers: {
-                'Accept': 'application/json',
-                'Accept-encoding': 'gzip, deflate',
-                'Content-Type': 'application/json',
-                'Content-Length': Buffer.byteLength(body)
-            }
-        }, (res) => {
-            let resData = '';
-            res.on('data', chunk => { resData += chunk; });
-            res.on('end', () => {
-                try {
-                    const parsed = JSON.parse(resData);
-                    console.log('Push notifications sent:', parsed);
-                    resolve(parsed);
-                } catch (e) {
-                    console.error('Error parsing expo response:', e);
-                    resolve({ error: 'Parse error' });
+    // Enviar individualmente para evitar errores PUSH_TOO_MANY_EXPERIENCE_IDS
+    // cuando hay tokens mezclados de Expo Go y APKs en producción.
+    const sendPush = (message) => {
+        return new Promise((resolve) => {
+            const body = JSON.stringify(message);
+            const req = https.request({
+                hostname: 'exp.host',
+                port: 443,
+                path: '/--/api/v2/push/send',
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Accept-encoding': 'gzip, deflate',
+                    'Content-Type': 'application/json',
+                    'Content-Length': Buffer.byteLength(body)
                 }
+            }, (res) => {
+                let resData = '';
+                res.on('data', chunk => { resData += chunk; });
+                res.on('end', () => {
+                    try {
+                        const parsed = JSON.parse(resData);
+                        resolve(parsed);
+                    } catch (e) {
+                        resolve({ error: 'Parse error' });
+                    }
+                });
             });
-        });
 
-        req.on('error', (e) => {
-            console.error('Error sending push notifications:', e);
-            resolve({ error: e.message });
+            req.on('error', (e) => resolve({ error: e.message }));
+            req.write(body);
+            req.end();
         });
+    };
 
-        req.write(body);
-        req.end();
-    });
+    try {
+        const results = await Promise.all(messages.map(msg => sendPush(msg)));
+        console.log('Push notifications sent result summary:', results.length);
+        return results;
+    } catch (e) {
+        console.error('Error in batch sending:', e);
+        return [];
+    }
 };
 
 module.exports = {
