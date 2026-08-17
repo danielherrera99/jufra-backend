@@ -95,6 +95,9 @@ class BaseModel {
 
             // Ignorar virtuales o métodos
             if (typeof v === 'function') continue;
+            
+            // Ignorar campos virtuales y claves primarias redundantes
+            if (k === 'nombreCompleto' || k === 'id' || k === '_id') continue;
 
             // Manejar ubicacion especial (lat/lng a latitud/longitud)
             if (k === 'ubicacion' && v && typeof v === 'object') {
