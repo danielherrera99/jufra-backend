@@ -395,7 +395,7 @@ class BaseModel {
                 .where('usuario_id', usuarioId)
                 .select('tipo_reunion as _id')
                 .count('id as total')
-                .sum(db.raw('CASE WHEN presente THEN 1 ELSE 0 END as presentes'))
+                .select(db.raw('SUM(CASE WHEN presente THEN 1 ELSE 0 END) as presentes'))
                 .groupBy('tipo_reunion');
                 
             return stats.map(s => ({
