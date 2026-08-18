@@ -153,6 +153,11 @@ class BaseModel {
             return this;
         };
 
+        modelData.deleteOne = async function() {
+            await db(self.tableName).where('id', this.id).del();
+            return this;
+        };
+
         modelData.populate = async function(field, selectFields) {
             // Simular populado de relaciones comunes
             if (field === 'usuario' || field === 'creadoPor' || field === 'autor' || field === 'subidoPor' || field === 'remitente' || field === 'destinatario') {
