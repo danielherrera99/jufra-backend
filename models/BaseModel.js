@@ -375,6 +375,75 @@ class BaseModel {
         return parseInt(countRes.count || 0);
     }
 
+    async updateMany(query = {}, updateFields = {}) {
+        let knexQuery = db(this.tableName);
+        const self = this;
+        
+        // Aplicar condicionales de query
+        const applyConditions = (builder, conds) => {
+            for (let [k, v] of Object.entries(conds)) {
+                if (k === '$or') {
+                    builder.where(function() {
+                        v.forEach((orCond, idx) => {
+                            if (idx === 0) this.where(function() { applyConditions(this, orCond) });
+                            else this.orWhere(function() { applyConditions(this, orCond) });
+                        });
+                    });
+                    continue;
+                }
+                if (k === '$and') {
+                    builder.where(function() {
+                        v.forEach(andCond => {
+                            this.where(function() { applyConditions(this, andCond) });
+                        });
+                    });
+                    continue;
+                }
+
+                const pgKey = self.mappings[k] || k;
+
+                if (v && typeof v === 'object' && !Array.isArray(v) && !(v instanceof Date)) {
+                    for (let [op, opVal] of Object.entries(v)) {
+                        switch(op) {
+                            case '$exists':
+                                if (opVal) builder.whereNotNull(pgKey);
+                                else builder.whereNull(pgKey);
+                                break;
+                            case '$ne': 
+                                if (opVal === null) builder.whereNotNull(pgKey);
+                                else builder.where(pgKey, '<>', opVal); 
+                                break;
+                            case '$in': 
+                                builder.whereIn(pgKey, opVal); 
+                                break;
+                            case '$regex':
+                                builder.where(pgKey, 'ilike', `%${opVal.source || opVal}%`.replace(/\.\*/g, '%').replace(/\^/g, '').replace(/\$/g, ''));
+                                break;
+                            case '$gte': builder.where(pgKey, '>=', opVal); break;
+                            case '$gt': builder.where(pgKey, '>', opVal); break;
+                            case '$lte': builder.where(pgKey, '<=', opVal); break;
+                            case '$lt': builder.where(pgKey, '<', opVal); break;
+                        }
+                    }
+                } else if (Array.isArray(v)) {
+                    builder.whereIn(pgKey, v);
+                } else if (k === 'usuario' || k === 'registradoPor' || k === 'creadoPor' || k === 'autor' || k === 'subidoPor' || k === 'remitente' || k === 'destinatario' || k === '_id') {
+                    builder.where(pgKey, toUUID(v));
+                } else if (v === null) {
+                    builder.whereNull(pgKey);
+                } else {
+                    builder.where(pgKey, v);
+                }
+            }
+        };
+
+        knexQuery.where(function() { applyConditions(this, query) });
+        
+        const pgFields = this.toPostgres(updateFields);
+        const rows = await knexQuery.update(pgFields).returning('*');
+        return { modifiedCount: rows.length };
+    }
+
     async bulkWrite(ops) {
         for (const op of ops) {
             if (op.updateOne) {
