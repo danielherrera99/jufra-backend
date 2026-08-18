@@ -270,8 +270,8 @@ class BaseModel {
                 if (k === '$or') {
                     builder.where(function() {
                         v.forEach((orCond, idx) => {
-                            if (idx === 0) this.where(b => applyConditions(b, orCond));
-                            else this.orWhere(b => applyConditions(b, orCond));
+                            if (idx === 0) this.where(function() { applyConditions(this, orCond) });
+                            else this.orWhere(function() { applyConditions(this, orCond) });
                         });
                     });
                     continue;
@@ -279,7 +279,7 @@ class BaseModel {
                 if (k === '$and') {
                     builder.where(function() {
                         v.forEach(andCond => {
-                            this.where(b => applyConditions(b, andCond));
+                            this.where(function() { applyConditions(this, andCond) });
                         });
                     });
                     continue;
