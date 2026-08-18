@@ -79,7 +79,7 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('ar
         const item = await Galeria.create({
             titulo,
             descripcion,
-            fecha: fecha || Date.now(),
+            fecha: fecha || new Date(),
             categoria: categoria || 'general',
             archivoUrl,
             tipoArchivo,
