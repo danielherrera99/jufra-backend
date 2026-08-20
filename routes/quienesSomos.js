@@ -47,7 +47,7 @@ router.get('/', async (req, res) => {
 // @access  Private (Admin, Equipo)
 router.post('/', proteger, autorizarRoles('admin', 'equipo'), upload.single('foto'), async (req, res) => {
     try {
-        const { nombre, rol, categoria, orden } = req.body;
+        const { nombre, rol, categoria, descripcion, orden } = req.body;
         
         let fotoUrl = null;
         if (req.file) {
@@ -58,6 +58,7 @@ router.post('/', proteger, autorizarRoles('admin', 'equipo'), upload.single('fot
             nombre,
             rol,
             categoria,
+            descripcion,
             fotoUrl,
             orden: orden ? parseInt(orden) : 0,
             createdAt: new Date(),
@@ -79,12 +80,13 @@ router.post('/', proteger, autorizarRoles('admin', 'equipo'), upload.single('fot
 // @access  Private
 router.put('/:id', proteger, autorizarRoles('admin', 'equipo'), upload.single('foto'), async (req, res) => {
     try {
-        const { nombre, rol, categoria, orden } = req.body;
+        const { nombre, rol, categoria, descripcion, orden } = req.body;
         
         const updates = {
             nombre,
             rol,
             categoria,
+            descripcion,
             orden: orden ? parseInt(orden) : 0,
             updatedAt: new Date()
         };

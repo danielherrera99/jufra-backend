@@ -4,6 +4,7 @@ const mappings = {
     nombre: 'nombre',
     rol: 'rol',
     categoria: 'categoria',
+    descripcion: 'descripcion',
     fotoUrl: 'foto_url',
     orden: 'orden',
     createdAt: 'created_at',
