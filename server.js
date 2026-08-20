@@ -83,6 +83,7 @@ app.use('/api/web-config', require('./routes/webConfig'));
 app.use('/api/ofs-config', require('./routes/ofsConfig'));
 app.use('/api/redes', require('./routes/redes'));
 app.use('/api/galeria-web', require('./routes/galeriaWeb'));
+app.use('/api/quienes-somos', require('./routes/quienesSomos'));
 
 // Ruta de prueba
 app.get('/', (req, res) => {
