@@ -1,7 +1,9 @@
 const express = require('express');
 const router = express.Router();
 const Solicitud = require('../models/Solicitud');
+const Usuario = require('../models/Usuario');
 const { proteger, autorizarRoles } = require('../middleware/auth');
+const { enviarNotificacionGrupal } = require('../utils/expoPush');
 
 // @route   POST /api/solicitudes
 // @desc    Crear una nueva solicitud (Público, desde la web)
@@ -20,6 +22,26 @@ router.post('/', async (req, res) => {
             telefono,
             mensaje
         });
+
+        // Notificar a los administradores y consejo
+        try {
+            const admins = await Usuario.find({ 
+                activo: true, 
+                expoPushToken: { $ne: null },
+                rol: { $in: ['admin', 'consejo'] }
+            });
+            const tokens = admins.map(u => u.expoPushToken);
+            if (tokens.length > 0) {
+                await enviarNotificacionGrupal(
+                    tokens,
+                    '👋 Nueva Solicitud de Ingreso',
+                    `${nombre} quiere unirse a JUFRA. ¡Revisa las solicitudes!`,
+                    { id: nuevaSolicitud._id, tipo: 'solicitud' }
+                );
+            }
+        } catch (pushErr) {
+            console.error('Error enviando notificaciones para nueva solicitud:', pushErr);
+        }
 
         res.status(201).json({ success: true, data: nuevaSolicitud });
     } catch (error) {
