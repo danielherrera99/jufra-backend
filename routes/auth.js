@@ -386,11 +386,10 @@ router.post('/recuperar-password', async (req, res) => {
         const crypto = require('crypto');
         const resetCode = crypto.randomInt(100000, 999999).toString();
 
-        // Hashear el código antes de guardarlo por seguridad (opcional, pero buena práctica)
+        // Hashear el código antes de guardarlo por seguridad
         const bcrypt = require('bcryptjs');
         const salt = await bcrypt.genSalt(10);
-        // Generar token y guardarlo
-        const resetToken = usuario.getResetPasswordToken();
+        usuario.resetPasswordCode = await bcrypt.hash(resetCode.toString(), salt);
         usuario.resetPasswordExpire = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
 
         await usuario.save({ validateBeforeSave: false });
