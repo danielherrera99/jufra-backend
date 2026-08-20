@@ -31,7 +31,7 @@ const upload = multer({
 // @access  Public
 router.get('/', async (req, res) => {
     try {
-        const miembros = await QuienesSomos.find().orderBy('orden', 'asc');
+        const miembros = await QuienesSomos.find().sort({ orden: 'asc' });
         res.status(200).json({
             success: true,
             data: miembros
