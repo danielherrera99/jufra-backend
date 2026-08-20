@@ -30,7 +30,7 @@ router.put('/', proteger, autorizarRoles('admin'), async (req, res) => {
         } else {
             // Actualizar campos
             Object.assign(config, req.body);
-            config.updatedAt = Date.now();
+            config.updatedAt = new Date();
             await config.save();
         }
         res.json({ success: true, message: 'Configuración actualizada correctamente', data: config });

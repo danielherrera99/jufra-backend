@@ -389,8 +389,9 @@ router.post('/recuperar-password', async (req, res) => {
         // Hashear el código antes de guardarlo por seguridad (opcional, pero buena práctica)
         const bcrypt = require('bcryptjs');
         const salt = await bcrypt.genSalt(10);
-        usuario.resetPasswordCode = await bcrypt.hash(resetCode, salt);
-        usuario.resetPasswordExpire = Date.now() + 15 * 60 * 1000; // 15 minutos
+        // Generar token y guardarlo
+        const resetToken = usuario.getResetPasswordToken();
+        usuario.resetPasswordExpire = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
 
         await usuario.save({ validateBeforeSave: false });
 
@@ -485,7 +486,7 @@ router.post('/verificar-codigo', async (req, res) => {
 
         const usuario = await Usuario.findOne({
             $or: [{ email: usernameOrEmail.toLowerCase() }, { username: usernameOrEmail }],
-            resetPasswordExpire: { $gt: Date.now() }
+            resetPasswordExpire: { $gt: new Date() }
         });
 
         if (!usuario) {
@@ -522,7 +523,7 @@ router.put('/reset-password', async (req, res) => {
 
         const usuario = await Usuario.findOne({
             $or: [{ email: usernameOrEmail.toLowerCase() }, { username: usernameOrEmail }],
-            resetPasswordExpire: { $gt: Date.now() }
+            resetPasswordExpire: { $gt: new Date() }
         });
 
         if (!usuario) {
