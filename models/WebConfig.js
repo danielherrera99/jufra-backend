@@ -17,6 +17,7 @@ const mappings = {
     instagramUrl: 'instagram_url',
     whatsappUrl: 'whatsapp_url',
     tiktokUrl: 'tiktok_url',
+    youtubeUrl: 'youtube_url',
     updatedAt: 'updated_at'
 };
 
