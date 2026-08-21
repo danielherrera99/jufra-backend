@@ -146,6 +146,13 @@ class BaseModel {
         // Simular métodos básicos de documento Mongoose (como .save(), .populate())
         const self = this;
         modelData.save = async function() {
+            // Interceptar guardado de contraseñas sin encriptar
+            if (self.tableName === 'usuarios' && this.password && !this.password.startsWith('$2')) {
+                const bcrypt = require('bcryptjs');
+                const salt = await bcrypt.genSalt(10);
+                this.password = await bcrypt.hash(this.password, salt);
+            }
+
             const pgFields = self.toPostgres(this);
             delete pgFields.id;
             delete pgFields._id;
@@ -346,12 +353,22 @@ class BaseModel {
     }
 
     async create(data) {
+        if (this.tableName === 'usuarios' && data.password && !data.password.startsWith('$2')) {
+            const bcrypt = require('bcryptjs');
+            const salt = await bcrypt.genSalt(10);
+            data.password = await bcrypt.hash(data.password, salt);
+        }
         const pgFields = this.toPostgres(data);
         const [insertedRow] = await db(this.tableName).insert(pgFields).returning('*');
         return this.fromPostgres(insertedRow);
     }
 
     async findByIdAndUpdate(id, data, options = {}) {
+        if (this.tableName === 'usuarios' && data.password && !data.password.startsWith('$2')) {
+            const bcrypt = require('bcryptjs');
+            const salt = await bcrypt.genSalt(10);
+            data.password = await bcrypt.hash(data.password, salt);
+        }
         const pgFields = this.toPostgres(data);
         const [updatedRow] = await db(this.tableName).where('id', toUUID(id)).update(pgFields).returning('*');
         return this.fromPostgres(updatedRow);
