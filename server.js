@@ -82,6 +82,7 @@ app.use('/api/fraternidades', require('./routes/fraternidades'));
 app.use('/api/web-config', require('./routes/webConfig'));
 app.use('/api/ofs-config', require('./routes/ofsConfig'));
 app.use('/api/redes', require('./routes/redes'));
+app.use('/api/metricas-sociales', require('./routes/metricasSociales'));
 app.use('/api/galeria-web', require('./routes/galeriaWeb'));
 app.use('/api/quienes-somos', require('./routes/quienesSomos'));
 
@@ -106,6 +107,10 @@ app.use((err, req, res, next) => {
 
 // Puerto
 const PORT = process.env.PORT || 5000;
+
+// Iniciar tareas automáticas (Cron Jobs)
+const { startCronJobs } = require('./jobs/cronJobs');
+startCronJobs();
 
 app.listen(PORT, () => {
     console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
