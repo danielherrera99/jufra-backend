@@ -4,8 +4,8 @@ const MetricaSocial = require('../models/MetricaSocial');
 
 // Programar la tarea para que se ejecute todos los días a las 3:00 AM
 // El formato del cron es: 'minuto hora dia_del_mes mes dia_de_la_semana'
-// '0 3 * * *' = todos los días a las 03:00 AM
-const cronSchedule = '0 3 * * *';
+// '0 3,10,18 * * *' = todos los días a las 03:00 AM, 10:00 AM y 06:00 PM
+const cronSchedule = '0 3,10,18 * * *';
 
 function startCronJobs() {
     console.log(`[Cron] Tarea automática programada: Recopilación de métricas (Hora: ${cronSchedule})`);
