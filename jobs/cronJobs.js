@@ -1,5 +1,5 @@
 const cron = require('node-cron');
-const { fetchMetaStats, fetchYouTubeStats, fetchAnalyticsStats } = require('../services/socialMedia');
+const { fetchMetaStats, fetchYouTubeStats, fetchAnalyticsStats, fetchInstagramStats, fetchTikTokStats } = require('../services/socialMedia');
 const MetricaSocial = require('../models/MetricaSocial');
 
 // Programar la tarea para que se ejecute todos los días a las 3:00 AM
@@ -17,10 +17,12 @@ function startCronJobs() {
         try {
             // 1. Obtener datos
             const fb = await fetchMetaStats();
+            const ig = await fetchInstagramStats();
             const yt = await fetchYouTubeStats();
             const ga = await fetchAnalyticsStats();
+            const tk = await fetchTikTokStats();
             
-            const resultados = [fb, yt, ga];
+            const resultados = [fb, ig, yt, ga, tk];
 
             // 2. Guardar en Base de Datos
             for (const resultado of resultados) {

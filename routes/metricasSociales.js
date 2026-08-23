@@ -12,7 +12,8 @@ router.get('/', async (req, res) => {
             facebook: metricas.filter(m => m.plataforma === 'facebook'),
             youtube: metricas.filter(m => m.plataforma === 'youtube'),
             web: metricas.filter(m => m.plataforma === 'web'),
-            tiktok: metricas.filter(m => m.plataforma === 'tiktok')
+            tiktok: metricas.filter(m => m.plataforma === 'tiktok'),
+            instagram: metricas.filter(m => m.plataforma === 'instagram')
         };
         
         res.json({
@@ -27,15 +28,17 @@ router.get('/', async (req, res) => {
 
 // Ruta para forzar actualización manual de métricas (por si el administrador quiere refrescar)
 router.post('/sync', async (req, res) => {
-    const { fetchMetaStats, fetchYouTubeStats, fetchAnalyticsStats } = require('../services/socialMedia');
+    const { fetchMetaStats, fetchYouTubeStats, fetchAnalyticsStats, fetchTikTokStats, fetchInstagramStats } = require('../services/socialMedia');
     
     try {
         const fb = await fetchMetaStats();
+        const ig = await fetchInstagramStats();
         const yt = await fetchYouTubeStats();
         const ga = await fetchAnalyticsStats();
+        const tk = await fetchTikTokStats();
         
         const fechaActual = new Date().toISOString().split('T')[0];
-        const resultados = [fb, yt, ga];
+        const resultados = [fb, ig, yt, ga, tk];
         
         for (const r of resultados) {
             if (r.success) {

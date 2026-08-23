@@ -85,6 +85,46 @@ const YOUTUBE_API_KEY = process.env.YOUTUBE_API_KEY;
 const YOUTUBE_CHANNEL_ID = process.env.YOUTUBE_CHANNEL_ID;
 // const GA_PROPERTY_ID = process.env.GA_PROPERTY_ID;
 
+// Función para Instagram usando Graph API
+async function fetchInstagramStats() {
+    try {
+        console.log('Consultando API de Instagram (Graph API)...');
+        const token = process.env.FB_ACCESS_TOKEN;
+        const pageId = process.env.FB_PAGE_ID;
+
+        if (!token || !pageId) {
+            throw new Error('Faltan credenciales de Facebook/Meta en .env');
+        }
+
+        // 1. Obtener el ID de Instagram asociado a la página
+        const pageUrl = `https://graph.facebook.com/v19.0/${pageId}?fields=instagram_business_account&access_token=${token}`;
+        const pageRes = await fetch(pageUrl);
+        const pageData = await pageRes.json();
+        
+        if (!pageData.instagram_business_account) {
+            throw new Error('No hay cuenta de Instagram conectada a esta página de Facebook');
+        }
+        
+        const igId = pageData.instagram_business_account.id;
+
+        // 2. Obtener métricas de Instagram
+        const igUrl = `https://graph.facebook.com/v19.0/${igId}?fields=followers_count,media_count&access_token=${token}`;
+        const igRes = await fetch(igUrl);
+        const igData = await igRes.json();
+
+        return {
+            plataforma: 'instagram',
+            seguidores: igData.followers_count || 0,
+            alcance: 0, 
+            interacciones: igData.media_count || 0, // Usamos interacciones para guardar la cantidad de posts
+            success: true
+        };
+    } catch (error) {
+        console.error('Error al obtener datos de Instagram:', error.message);
+        return { plataforma: 'instagram', error: error.message, success: false };
+    }
+}
+
 // Función para YouTube
 async function fetchYouTubeStats() {
     try {
@@ -165,8 +205,9 @@ async function fetchAnalyticsStats() {
 }
 
 module.exports = {
-    fetchTikTokStats,
     fetchMetaStats,
+    fetchInstagramStats,
     fetchYouTubeStats,
-    fetchAnalyticsStats
+    fetchAnalyticsStats,
+    fetchTikTokStats
 };
