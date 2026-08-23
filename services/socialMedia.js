@@ -204,10 +204,143 @@ async function fetchAnalyticsStats() {
     }
 }
 
+// Funciones para extraer PUBLICACIONES INDIVIDUALES
+
+async function fetchFacebookPosts() {
+    try {
+        const token = process.env.FB_ACCESS_TOKEN;
+        const pageId = process.env.FB_PAGE_ID;
+        if (!token || !pageId) return { plataforma: 'facebook', success: false, error: 'Credenciales faltantes' };
+
+        const url = `https://graph.facebook.com/v19.0/${pageId}/published_posts?fields=id,message,created_time,permalink_url,full_picture,shares,likes.summary(true),comments.summary(true)&limit=15&access_token=${token}`;
+        const res = await fetch(url).then(r => r.json());
+        
+        if (!res.data) return { plataforma: 'facebook', success: true, data: [] };
+
+        const posts = res.data.map(p => ({
+            plataforma: 'facebook',
+            post_id: p.id,
+            url: p.permalink_url || `https://facebook.com/${p.id}`,
+            titulo: p.message || 'Sin descripción',
+            fecha_publicacion: p.created_time,
+            vistas: 0,
+            likes: p.likes ? p.likes.summary.total_count : 0,
+            comentarios: p.comments ? p.comments.summary.total_count : 0,
+            imagen_url: p.full_picture || null
+        }));
+
+        return { plataforma: 'facebook', success: true, data: posts };
+    } catch (error) {
+        return { plataforma: 'facebook', success: false, error: error.message };
+    }
+}
+
+async function fetchInstagramPosts() {
+    try {
+        const token = process.env.FB_ACCESS_TOKEN;
+        const pageId = process.env.FB_PAGE_ID;
+        if (!token || !pageId) return { plataforma: 'instagram', success: false, error: 'Credenciales faltantes' };
+
+        const pageUrl = `https://graph.facebook.com/v19.0/${pageId}?fields=instagram_business_account&access_token=${token}`;
+        const pageRes = await fetch(pageUrl).then(r => r.json());
+        
+        if (!pageRes.instagram_business_account) return { plataforma: 'instagram', success: false, error: 'No IG linked' };
+        
+        const igId = pageRes.instagram_business_account.id;
+        const igUrl = `https://graph.facebook.com/v19.0/${igId}/media?fields=id,caption,media_url,permalink,timestamp,like_count,comments_count,media_type,thumbnail_url&limit=15&access_token=${token}`;
+        const igRes = await fetch(igUrl).then(r => r.json());
+
+        if (!igRes.data) return { plataforma: 'instagram', success: true, data: [] };
+
+        const posts = igRes.data.map(p => ({
+            plataforma: 'instagram',
+            post_id: p.id,
+            url: p.permalink,
+            titulo: p.caption || 'Sin descripción',
+            fecha_publicacion: p.timestamp,
+            vistas: 0,
+            likes: p.like_count || 0,
+            comentarios: p.comments_count || 0,
+            imagen_url: p.media_type === 'VIDEO' ? (p.thumbnail_url || p.media_url) : p.media_url
+        }));
+
+        return { plataforma: 'instagram', success: true, data: posts };
+    } catch (error) {
+        return { plataforma: 'instagram', success: false, error: error.message };
+    }
+}
+
+async function fetchYouTubeVideos() {
+    try {
+        const apiKey = process.env.YOUTUBE_API_KEY;
+        const channelId = process.env.YOUTUBE_CHANNEL_ID;
+        if (!apiKey || !channelId) return { plataforma: 'youtube', success: false, error: 'Credenciales faltantes' };
+
+        const playlistId = channelId.replace('UC', 'UU');
+        const listUrl = `https://www.googleapis.com/youtube/v3/playlistItems?part=snippet,contentDetails&playlistId=${playlistId}&maxResults=15&key=${apiKey}`;
+        const listRes = await fetch(listUrl).then(r => r.json());
+        
+        if (!listRes.items || listRes.items.length === 0) return { plataforma: 'youtube', success: true, data: [] };
+
+        const videoIds = listRes.items.map(i => i.contentDetails.videoId).join(',');
+        const statsUrl = `https://www.googleapis.com/youtube/v3/videos?part=snippet,statistics&id=${videoIds}&key=${apiKey}`;
+        const statsRes = await fetch(statsUrl).then(r => r.json());
+
+        const posts = statsRes.items.map(v => ({
+            plataforma: 'youtube',
+            post_id: v.id,
+            url: `https://www.youtube.com/watch?v=${v.id}`,
+            titulo: v.snippet.title,
+            fecha_publicacion: v.snippet.publishedAt,
+            vistas: parseInt(v.statistics.viewCount) || 0,
+            likes: parseInt(v.statistics.likeCount) || 0,
+            comentarios: parseInt(v.statistics.commentCount) || 0,
+            imagen_url: v.snippet.thumbnails.medium ? v.snippet.thumbnails.medium.url : (v.snippet.thumbnails.default ? v.snippet.thumbnails.default.url : null)
+        }));
+
+        return { plataforma: 'youtube', success: true, data: posts };
+    } catch (error) {
+        return { plataforma: 'youtube', success: false, error: error.message };
+    }
+}
+
+async function fetchTikTokVideos() {
+    try {
+        const apiKey = process.env.RAPIDAPI_KEY;
+        const username = process.env.TIKTOK_USERNAME;
+        if (!apiKey || !username) return { plataforma: 'tiktok', success: false, error: 'Credenciales faltantes' };
+
+        const url = `https://tiktok-video-no-watermark2.p.rapidapi.com/user/posts?unique_id=${username}&count=15`;
+        const res = await fetch(url, { headers: { 'x-rapidapi-host': 'tiktok-video-no-watermark2.p.rapidapi.com', 'x-rapidapi-key': apiKey } }).then(r => r.json());
+
+        if (!res.data || !res.data.videos) return { plataforma: 'tiktok', success: true, data: [] };
+
+        const posts = res.data.videos.map(v => ({
+            plataforma: 'tiktok',
+            post_id: v.video_id,
+            url: `https://www.tiktok.com/@${username}/video/${v.video_id}`,
+            titulo: v.title || 'Sin descripción',
+            fecha_publicacion: new Date(v.create_time * 1000).toISOString(),
+            vistas: v.play_count || 0,
+            likes: v.digg_count || 0,
+            comentarios: v.comment_count || 0,
+            imagen_url: v.cover || null
+        }));
+
+        return { plataforma: 'tiktok', success: true, data: posts };
+    } catch (error) {
+        return { plataforma: 'tiktok', success: false, error: error.message };
+    }
+}
+
 module.exports = {
     fetchMetaStats,
     fetchInstagramStats,
     fetchYouTubeStats,
     fetchAnalyticsStats,
-    fetchTikTokStats
+    fetchTikTokStats,
+    fetchFacebookPosts,
+    fetchInstagramPosts,
+    fetchYouTubeVideos,
+    fetchTikTokVideos
 };
