@@ -3,22 +3,48 @@
  * y obtener las métricas de Jufra-Pomalca
  */
 
-// Función temporal simulada para TikTok (hasta que tengamos los accesos)
+// Función para TikTok usando RapidAPI
 async function fetchTikTokStats() {
     try {
-        console.log('Consultando API de TikTok...');
-        // TODO: Implementar lógica de fetch a la API de TikTok usando Client Key y Secret
-        // Requiere generar un Access Token usando oauth2
+        console.log('Consultando API de TikTok (vía RapidAPI)...');
         
-        return {
-            plataforma: 'tiktok',
-            seguidores: 0,
-            alcance: 0,
-            interacciones: 0,
-            success: true
+        const username = process.env.TIKTOK_USERNAME;
+        const apiKey = process.env.RAPIDAPI_KEY;
+        
+        if (!username || !apiKey) {
+            throw new Error('Faltan credenciales de RapidAPI o TikTok username');
+        }
+
+        const url = `https://tiktok-video-no-watermark2.p.rapidapi.com/user/info?unique_id=${username}`;
+        const response = await fetch(url, {
+            method: 'GET',
+            headers: {
+                'x-rapidapi-host': 'tiktok-video-no-watermark2.p.rapidapi.com',
+                'x-rapidapi-key': apiKey
+            }
+        });
+
+        if (!response.ok) {
+            throw new Error(`HTTP Error: ${response.status}`);
+        }
+
+        const data = await response.json();
+        
+        if (data.code !== 0 || !data.data || !data.data.stats) {
+            throw new Error(data.msg || 'Error al obtener datos de TikTok');
+        }
+
+        const stats = data.data.stats;
+        
+        return { 
+            plataforma: 'tiktok', 
+            seguidores: stats.followerCount, 
+            alcance: stats.videoCount, // Usamos videoCount o views
+            interacciones: stats.heartCount, // Total de likes
+            success: true 
         };
     } catch (error) {
-        console.error('Error al obtener datos de TikTok:', error);
+        console.error('Error al obtener datos de TikTok:', error.message);
         return { plataforma: 'tiktok', error: error.message, success: false };
     }
 }
