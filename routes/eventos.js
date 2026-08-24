@@ -213,6 +213,10 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo', 'coordinador'), 
                 lng: parseFloat(req.body.lng)
             };
         }
+        
+        delete camposActualizar.lat;
+        delete camposActualizar.lng;
+        delete camposActualizar.visibilidad;
 
         if (camposActualizar.publicar_web !== undefined) {
             camposActualizar.publicar_web = camposActualizar.publicar_web === 'true' || camposActualizar.publicar_web === true;
