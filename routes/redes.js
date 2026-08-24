@@ -61,6 +61,10 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), cpUpload, async (
         if (req.files && req.files['author_icon_file']) {
             payload.author_icon = req.files['author_icon_file'][0].path;
         }
+        
+        if (payload.activo !== undefined) {
+            payload.activo = payload.activo === 'true' || payload.activo === true;
+        }
 
         const nuevaPublicacion = await RedSocialPost.create(payload);
         res.status(201).json({ success: true, data: nuevaPublicacion });
@@ -87,6 +91,10 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), cpUpload, async
         
         if (req.files && req.files['author_icon_file']) {
             payload.author_icon = req.files['author_icon_file'][0].path;
+        }
+        
+        if (payload.activo !== undefined) {
+            payload.activo = payload.activo === 'true' || payload.activo === true;
         }
 
         const updatedPost = await RedSocialPost.findByIdAndUpdate(req.params.id, payload);
