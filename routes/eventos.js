@@ -75,6 +75,27 @@ router.get('/', proteger, async (req, res) => {
     }
 });
 
+// @route   GET /api/eventos/web
+// @desc    Obtener eventos para la web publica
+// @access  Public
+router.get('/web', async (req, res) => {
+    try {
+        const hoy = new Date();
+        hoy.setHours(0, 0, 0, 0);
+
+        const eventos = await Evento.find({ fecha: { $gte: hoy }, publicar_web: true })
+            .sort({ fecha: 1 });
+
+        res.status(200).json({
+            success: true,
+            eventos
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error al obtener eventos para web' });
+    }
+});
+
 // @route   POST /api/eventos
 // @desc    Crear nuevo evento
 // @access  Private (Admin/Consejo)
@@ -88,6 +109,13 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo', 'coordinador'), up
             imagenUrl = req.file.path;
         }
 
+        let publicar_web = req.body.publicar_web;
+        if (publicar_web !== undefined) {
+            publicar_web = publicar_web === 'true' || publicar_web === true;
+        } else {
+            publicar_web = false;
+        }
+
         const eventoData = {
             titulo,
             descripcion,
@@ -96,7 +124,8 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo', 'coordinador'), up
             lugar,
             tipo,
             creadoPor: req.usuario._id,
-            imagenUrl
+            imagenUrl,
+            publicar_web
         };
 
         const hasUbicacion = lat !== undefined && lat !== null && lat !== '' && 
@@ -183,6 +212,10 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo', 'coordinador'), 
                 lat: parseFloat(req.body.lat),
                 lng: parseFloat(req.body.lng)
             };
+        }
+
+        if (camposActualizar.publicar_web !== undefined) {
+            camposActualizar.publicar_web = camposActualizar.publicar_web === 'true' || camposActualizar.publicar_web === true;
         }
 
         const evento = await Evento.findByIdAndUpdate(req.params.id, camposActualizar, {
