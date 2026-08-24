@@ -47,6 +47,45 @@ router.get('/', async (req, res) => {
     }
 });
 
+// @route   GET /api/redes/landing
+// @desc    Obtener TODAS las publicaciones activas (manuales y raspadas) para la web
+// @access  Public
+router.get('/landing', async (req, res) => {
+    try {
+        const db = require('../db');
+        
+        // 1. Posts manuales
+        const manualPosts = await RedSocialPost.find();
+        const activeManual = manualPosts.filter(p => p.activo !== false);
+
+        // 2. Posts raspados
+        const result = await db.raw('SELECT * FROM publicaciones_sociales WHERE activo = true');
+        const scrapedPosts = result.rows || result; // depends on pg driver
+
+        // 3. Mapear raspados al formato manual
+        const mappedScraped = scrapedPosts.map(p => ({
+            id: p.post_id,
+            red_social: p.plataforma,
+            author_name: 'JUFRA Pomalca',
+            author_icon: 'https://jufrapomalca.web.app/logo.png', // Or default
+            date_text: new Date(p.fecha_publicacion).toLocaleDateString(),
+            content: p.titulo,
+            image_url: p.imagen_url,
+            likes: String(p.likes || 0),
+            comments: String(p.comentarios || 0),
+            link: p.url,
+            created_at: p.fecha_publicacion
+        }));
+
+        const allPosts = [...activeManual, ...mappedScraped].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
+
+        res.json({ success: true, posts: allPosts });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error al obtener publicaciones para landing' });
+    }
+});
+
 // @route   POST /api/redes
 // @desc    Crear una nueva publicación
 // @access  Private (Admin/Consejo)

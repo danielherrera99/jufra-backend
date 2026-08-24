@@ -47,6 +47,24 @@ router.get('/publicaciones/:plataforma', async (req, res) => {
     }
 });
 
+// Actualizar estado 'activo' de una publicación raspada
+router.put('/publicaciones/:post_id', async (req, res) => {
+    try {
+        const { post_id } = req.params;
+        const db = require('../db');
+        let activo = req.body.activo;
+        if (activo === 'true' || activo === true) activo = true;
+        else activo = false;
+
+        await db.raw('UPDATE publicaciones_sociales SET activo = ? WHERE post_id = ?', [activo, post_id]);
+        
+        res.json({ success: true, message: 'Estado actualizado' });
+    } catch (error) {
+        console.error('Error al actualizar publicacion:', error);
+        res.status(500).json({ success: false, message: 'Error del servidor' });
+    }
+});
+
 // Ruta para forzar actualización manual de métricas (por si el administrador quiere refrescar)
 router.post('/sync', async (req, res) => {
     const { fetchMetaStats, fetchYouTubeStats, fetchAnalyticsStats, fetchTikTokStats, fetchInstagramStats, fetchFacebookPosts, fetchInstagramPosts, fetchYouTubeVideos, fetchTikTokVideos } = require('../services/socialMedia');
