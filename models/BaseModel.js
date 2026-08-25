@@ -20,9 +20,10 @@ class MongooseQueryMock {
 
     sort(sortObj) {
         if (typeof sortObj === 'object') {
-            const [k, v] = Object.entries(sortObj)[0];
-            const pgKey = this.self.mappings[k] || k;
-            this.knexQuery = this.knexQuery.orderBy(pgKey, v === 1 || v === 'asc' ? 'asc' : 'desc');
+            for (const [k, v] of Object.entries(sortObj)) {
+                const pgKey = this.self.mappings[k] || k;
+                this.knexQuery = this.knexQuery.orderBy(pgKey, v === 1 || v === 'asc' ? 'asc' : 'desc');
+            }
         } else if (typeof sortObj === 'function') {
             this.memorySort = sortObj;
         }

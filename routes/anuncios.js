@@ -126,8 +126,19 @@ router.get('/', proteger, async (req, res) => {
         if (tipo) filtro.tipo = tipo;
         if (prioridad) filtro.prioridad = prioridad;
         if (destacado !== undefined) filtro.destacado = destacado === 'true';
-        if (destinatarios) filtro.destinatarios = destinatarios;
-
+        if (destinatarios) {
+            if (destinatarios === 'app') {
+                if (req.usuario && (req.usuario.rol === 'admin' || req.usuario.rol === 'consejo')) {
+                    filtro.destinatarios = { $in: ['app', 'todos', 'consejo'] };
+                } else {
+                    filtro.destinatarios = { $in: ['app', 'todos'] };
+                }
+            } else if (destinatarios === 'web') {
+                filtro.destinatarios = { $in: ['web', 'todos'] };
+            } else {
+                filtro.destinatarios = destinatarios;
+            }
+        }
         // Filtrar anuncios no expirados
         filtro.$or = [
             { fechaExpiracion: null },
