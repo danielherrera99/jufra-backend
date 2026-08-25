@@ -56,6 +56,20 @@ router.get('/', proteger, async (req, res) => {
             query = {};
             sortOption = { fecha: -1 }; // Descendente para ver los más recientes arriba
         }
+        
+        if (req.query.visibilidad) {
+            if (req.query.visibilidad === 'app') {
+                if (req.usuario && (req.usuario.rol === 'admin' || req.usuario.rol === 'consejo')) {
+                    query.visibilidad = { $in: ['app', 'todos', 'consejo'] };
+                } else {
+                    query.visibilidad = { $in: ['app', 'todos'] };
+                }
+            } else if (req.query.visibilidad === 'web') {
+                query.visibilidad = { $in: ['web', 'todos'] };
+            } else {
+                query.visibilidad = req.query.visibilidad;
+            }
+        }
 
         const eventos = await Evento.find(query)
             .sort(sortOption)
@@ -123,6 +137,7 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo', 'coordinador'), up
             hora,
             lugar,
             tipo,
+            visibilidad: req.body.visibilidad || 'todos',
             creadoPor: req.usuario._id,
             imagenUrl,
             publicar_web
@@ -216,7 +231,6 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo', 'coordinador'), 
         
         delete camposActualizar.lat;
         delete camposActualizar.lng;
-        delete camposActualizar.visibilidad;
 
         if (camposActualizar.publicar_web !== undefined) {
             camposActualizar.publicar_web = camposActualizar.publicar_web === 'true' || camposActualizar.publicar_web === true;
