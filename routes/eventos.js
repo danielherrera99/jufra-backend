@@ -155,17 +155,27 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo', 'coordinador'), up
 
         const evento = await Evento.create(eventoData);
 
-        // Notificar a todos los usuarios activos
+        // Notificar a usuarios dependiendo de la visibilidad
         try {
-            const usuariosActivos = await Usuario.find({ activo: true, expoPushToken: { $ne: null } });
-            const tokens = usuariosActivos.map(u => u.expoPushToken);
-            if (tokens.length > 0) {
-                await enviarNotificacionGrupal(
-                    tokens, 
-                    `📅 Nuevo Evento Programado: ${titulo}`, 
-                    `${lugar ? '📍 ' + lugar + ' - ' : ''}${new Date(fecha).toLocaleDateString()} a las ${hora}`,
-                    { id: evento._id, tipo: 'evento' }
-                );
+            if (eventoData.visibilidad !== 'web') {
+                let queryUsuarios = { activo: true, expoPushToken: { $ne: null } };
+                
+                // Si es solo para consejo, filtrar por rol
+                if (eventoData.visibilidad === 'consejo') {
+                    queryUsuarios.rol = { $in: ['admin', 'consejo'] };
+                }
+
+                const usuariosActivos = await Usuario.find(queryUsuarios);
+                const tokens = usuariosActivos.map(u => u.expoPushToken);
+                
+                if (tokens.length > 0) {
+                    await enviarNotificacionGrupal(
+                        tokens, 
+                        `📅 Nuevo Evento Programado: ${titulo}`, 
+                        `${lugar ? '📍 ' + lugar + ' - ' : ''}${new Date(fecha).toLocaleDateString()} a las ${hora}`,
+                        { id: evento._id, tipo: 'evento' }
+                    );
+                }
             }
         } catch (pushErr) {
             console.error('Error enviando notificaciones para evento:', pushErr);
