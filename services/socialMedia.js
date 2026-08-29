@@ -10,6 +10,17 @@ cloudinary.config({
   api_key: process.env.CLOUDINARY_API_KEY,
   api_secret: process.env.CLOUDINARY_API_SECRET
 });
+
+async function safeCloudinaryUpload(url, folder) {
+    if (!url) return null;
+    try {
+        const uploadRes = await cloudinary.uploader.upload(url, { folder });
+        return uploadRes.secure_url;
+    } catch (e) {
+        console.error(`Error subiendo imagen a Cloudinary en ${folder}:`, e.message);
+        return url; // Fallback al original si falla
+    }
+}
 async function fetchTikTokStats() {
     try {
         console.log('Consultando API de TikTok (vía RapidAPI)...');
@@ -223,17 +234,25 @@ async function fetchFacebookPosts() {
         
         if (!res.data) return { plataforma: 'facebook', success: true, data: [] };
 
-        const posts = res.data.map(p => ({
-            plataforma: 'facebook',
-            post_id: p.id,
-            url: p.permalink_url || `https://facebook.com/${p.id}`,
-            titulo: p.message || 'Sin descripción',
-            fecha_publicacion: p.created_time,
-            vistas: 0,
-            likes: p.likes ? p.likes.summary.total_count : 0,
-            comentarios: p.comments ? p.comments.summary.total_count : 0,
-            imagen_url: p.full_picture || null
-        }));
+        const posts = [];
+        for (const p of res.data) {
+            let imagen_url = p.full_picture || null;
+            if (imagen_url) {
+                imagen_url = await safeCloudinaryUpload(imagen_url, 'facebook_covers');
+            }
+            
+            posts.push({
+                plataforma: 'facebook',
+                post_id: p.id,
+                url: p.permalink_url || `https://facebook.com/${p.id}`,
+                titulo: p.message || 'Sin descripción',
+                fecha_publicacion: p.created_time,
+                vistas: 0,
+                likes: p.likes ? p.likes.summary.total_count : 0,
+                comentarios: p.comments ? p.comments.summary.total_count : 0,
+                imagen_url: imagen_url
+            });
+        }
 
         return { plataforma: 'facebook', success: true, data: posts };
     } catch (error) {
@@ -258,17 +277,25 @@ async function fetchInstagramPosts() {
 
         if (!igRes.data) return { plataforma: 'instagram', success: true, data: [] };
 
-        const posts = igRes.data.map(p => ({
-            plataforma: 'instagram',
-            post_id: p.id,
-            url: p.permalink,
-            titulo: p.caption || 'Sin descripción',
-            fecha_publicacion: p.timestamp,
-            vistas: 0,
-            likes: p.like_count || 0,
-            comentarios: p.comments_count || 0,
-            imagen_url: p.media_type === 'VIDEO' ? (p.thumbnail_url || p.media_url) : p.media_url
-        }));
+        const posts = [];
+        for (const p of igRes.data) {
+            let imagen_url = p.media_type === 'VIDEO' ? (p.thumbnail_url || p.media_url) : p.media_url;
+            if (imagen_url) {
+                imagen_url = await safeCloudinaryUpload(imagen_url, 'instagram_covers');
+            }
+            
+            posts.push({
+                plataforma: 'instagram',
+                post_id: p.id,
+                url: p.permalink,
+                titulo: p.caption || 'Sin descripción',
+                fecha_publicacion: p.timestamp,
+                vistas: 0,
+                likes: p.like_count || 0,
+                comentarios: p.comments_count || 0,
+                imagen_url: imagen_url
+            });
+        }
 
         return { plataforma: 'instagram', success: true, data: posts };
     } catch (error) {
@@ -325,12 +352,7 @@ async function fetchTikTokVideos() {
         for (const v of res.data.videos) {
             let imagen_url = v.cover || null;
             if (imagen_url) {
-                try {
-                    const uploadRes = await cloudinary.uploader.upload(imagen_url, { folder: 'tiktok_covers' });
-                    imagen_url = uploadRes.secure_url;
-                } catch (e) {
-                    console.error('Error subiendo cover a Cloudinary:', e.message);
-                }
+                imagen_url = await safeCloudinaryUpload(imagen_url, 'tiktok_covers');
             }
             posts.push({
                 plataforma: 'tiktok',
