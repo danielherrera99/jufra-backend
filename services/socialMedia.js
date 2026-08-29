@@ -4,6 +4,12 @@
  */
 
 // Función para TikTok usando RapidAPI
+const cloudinary = require('cloudinary').v2;
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
 async function fetchTikTokStats() {
     try {
         console.log('Consultando API de TikTok (vía RapidAPI)...');
@@ -315,17 +321,29 @@ async function fetchTikTokVideos() {
 
         if (!res.data || !res.data.videos) return { plataforma: 'tiktok', success: true, data: [] };
 
-        const posts = res.data.videos.map(v => ({
-            plataforma: 'tiktok',
-            post_id: v.video_id,
-            url: `https://www.tiktok.com/@${username}/video/${v.video_id}`,
-            titulo: v.title || 'Sin descripción',
-            fecha_publicacion: new Date(v.create_time * 1000).toISOString(),
-            vistas: v.play_count || 0,
-            likes: v.digg_count || 0,
-            comentarios: v.comment_count || 0,
-            imagen_url: v.cover || null
-        }));
+        const posts = [];
+        for (const v of res.data.videos) {
+            let imagen_url = v.cover || null;
+            if (imagen_url) {
+                try {
+                    const uploadRes = await cloudinary.uploader.upload(imagen_url, { folder: 'tiktok_covers' });
+                    imagen_url = uploadRes.secure_url;
+                } catch (e) {
+                    console.error('Error subiendo cover a Cloudinary:', e.message);
+                }
+            }
+            posts.push({
+                plataforma: 'tiktok',
+                post_id: v.video_id,
+                url: `https://www.tiktok.com/@${username}/video/${v.video_id}`,
+                titulo: v.title || 'Sin descripción',
+                fecha_publicacion: new Date(v.create_time * 1000).toISOString(),
+                vistas: v.play_count || 0,
+                likes: v.digg_count || 0,
+                comentarios: v.comment_count || 0,
+                imagen_url: imagen_url
+            });
+        }
 
         return { plataforma: 'tiktok', success: true, data: posts };
     } catch (error) {
