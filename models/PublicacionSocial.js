@@ -10,6 +10,7 @@ const mappings = {
     likes: 'likes',
     comentarios: 'comentarios',
     imagenUrl: 'imagen_url',
+    mostrarEnTodos: 'mostrar_en_todos',
     createdAt: 'created_at',
     updatedAt: 'updated_at'
 };

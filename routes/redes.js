@@ -55,11 +55,14 @@ router.get('/landing', async (req, res) => {
         const db = require('../db');
         
         // 1. Posts manuales
-        const manualPosts = await RedSocialPost.find();
-        const activeManual = manualPosts.filter(p => p.activo !== false);
+        const manualPosts = await RedSocialPost.find({ $or: [{ activo: true }, { mostrarEnTodos: true }] });
+        const activeManual = manualPosts.map(p => ({
+            ...p,
+            mostrar_en_todos: p.mostrarEnTodos
+        }));
 
         // 2. Posts raspados
-        const result = await db.raw('SELECT * FROM publicaciones_sociales WHERE activo = true');
+        const result = await db.raw('SELECT * FROM publicaciones_sociales WHERE activo = true OR mostrar_en_todos = true');
         const scrapedPosts = result.rows || result; // depends on pg driver
 
         // 3. Mapear raspados al formato manual
@@ -74,7 +77,9 @@ router.get('/landing', async (req, res) => {
             likes: String(p.likes || 0),
             comments: String(p.comentarios || 0),
             link: p.url,
-            created_at: p.fecha_publicacion
+            created_at: p.fecha_publicacion,
+            activo: p.activo,
+            mostrar_en_todos: p.mostrar_en_todos
         }));
 
         const allPosts = [...activeManual, ...mappedScraped].sort((a, b) => new Date(b.created_at) - new Date(a.created_at));
@@ -103,6 +108,9 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), cpUpload, async (
         
         if (payload.activo !== undefined) {
             payload.activo = payload.activo === 'true' || payload.activo === true;
+        }
+        if (payload.mostrarEnTodos !== undefined) {
+            payload.mostrarEnTodos = payload.mostrarEnTodos === 'true' || payload.mostrarEnTodos === true;
         }
 
         const nuevaPublicacion = await RedSocialPost.create(payload);
@@ -134,6 +142,9 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), cpUpload, async
         
         if (payload.activo !== undefined) {
             payload.activo = payload.activo === 'true' || payload.activo === true;
+        }
+        if (payload.mostrarEnTodos !== undefined) {
+            payload.mostrarEnTodos = payload.mostrarEnTodos === 'true' || payload.mostrarEnTodos === true;
         }
 
         const updatedPost = await RedSocialPost.findByIdAndUpdate(req.params.id, payload);

@@ -47,16 +47,23 @@ router.get('/publicaciones/:plataforma', async (req, res) => {
     }
 });
 
-// Actualizar estado 'activo' de una publicación raspada
+// Actualizar estado 'activo' y/o 'mostrar_en_todos' de una publicación raspada
 router.put('/publicaciones/:post_id', async (req, res) => {
     try {
         const { post_id } = req.params;
         const db = require('../db');
-        let activo = req.body.activo;
-        if (activo === 'true' || activo === true) activo = true;
-        else activo = false;
+        const updates = {};
+        
+        if (req.body.activo !== undefined) {
+            updates.activo = req.body.activo === 'true' || req.body.activo === true;
+        }
+        if (req.body.mostrar_en_todos !== undefined) {
+            updates.mostrar_en_todos = req.body.mostrar_en_todos === 'true' || req.body.mostrar_en_todos === true;
+        }
 
-        await db.raw('UPDATE publicaciones_sociales SET activo = ? WHERE post_id = ?', [activo, post_id]);
+        if (Object.keys(updates).length > 0) {
+            await db('publicaciones_sociales').where('post_id', post_id).update(updates);
+        }
         
         res.json({ success: true, message: 'Estado actualizado' });
     } catch (error) {
