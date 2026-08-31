@@ -66,6 +66,7 @@ function startCronJobs() {
                                 vistas = EXCLUDED.vistas,
                                 likes = EXCLUDED.likes,
                                 comentarios = EXCLUDED.comentarios,
+                                imagen_url = EXCLUDED.imagen_url,
                                 updated_at = NOW()
                         `, [post.plataforma, post.post_id, post.url, post.titulo, post.fecha_publicacion, post.vistas, post.likes, post.comentarios, post.imagen_url]);
                     }
