@@ -4,20 +4,40 @@
  */
 
 // Función para TikTok usando RapidAPI
-const cloudinary = require('cloudinary').v2;
-cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
-});
+const fs = require('fs');
+const path = require('path');
+const { pipeline } = require('stream/promises');
 
-async function safeCloudinaryUpload(url, folder) {
+async function safeLocalUpload(url, folder) {
     if (!url) return null;
     try {
-        const uploadRes = await cloudinary.uploader.upload(url, { folder });
-        return uploadRes.secure_url;
+        const fetch = (await import('node-fetch')).default || globalThis.fetch;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        
+        // Determinar extensión simple
+        let ext = '.jpg';
+        if (url.includes('.png')) ext = '.png';
+        if (url.includes('.webp')) ext = '.webp';
+
+        const filename = `${folder}_${Date.now()}_${Math.random().toString(36).substring(7)}${ext}`;
+        const dirpath = path.join(__dirname, '..', 'uploads', 'social');
+        if (!fs.existsSync(dirpath)) {
+            fs.mkdirSync(dirpath, { recursive: true });
+        }
+        const filepath = path.join(dirpath, filename);
+        
+        const dest = fs.createWriteStream(filepath);
+        if (res.body && res.body.pipe) {
+            await pipeline(res.body, dest);
+        } else {
+            const buffer = Buffer.from(await res.arrayBuffer());
+            fs.writeFileSync(filepath, buffer);
+        }
+        
+        return `/uploads/social/${filename}`;
     } catch (e) {
-        console.error(`Error subiendo imagen a Cloudinary en ${folder}:`, e.message);
+        console.error(`Error descargando imagen localmente en ${folder}:`, e.message);
         return url; // Fallback al original si falla
     }
 }
@@ -238,7 +258,7 @@ async function fetchFacebookPosts() {
         for (const p of res.data) {
             let imagen_url = p.full_picture || null;
             if (imagen_url) {
-                imagen_url = await safeCloudinaryUpload(imagen_url, 'facebook_covers');
+                imagen_url = await safeLocalUpload(imagen_url, 'facebook_covers');
             }
             
             posts.push({
@@ -281,7 +301,7 @@ async function fetchInstagramPosts() {
         for (const p of igRes.data) {
             let imagen_url = p.media_type === 'VIDEO' ? (p.thumbnail_url || p.media_url) : p.media_url;
             if (imagen_url) {
-                imagen_url = await safeCloudinaryUpload(imagen_url, 'instagram_covers');
+                imagen_url = await safeLocalUpload(imagen_url, 'instagram_covers');
             }
             
             posts.push({
@@ -352,7 +372,7 @@ async function fetchTikTokVideos() {
         for (const v of res.data.videos) {
             let imagen_url = v.cover || null;
             if (imagen_url) {
-                imagen_url = await safeCloudinaryUpload(imagen_url, 'tiktok_covers');
+                imagen_url = await safeLocalUpload(imagen_url, 'tiktok_covers');
             }
             posts.push({
                 plataforma: 'tiktok',
