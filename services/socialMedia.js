@@ -4,12 +4,32 @@
  */
 
 // Función para TikTok usando RapidAPI
+// Función para subir imágenes (Cloudinary o Local fallback)
+const cloudinary = require('cloudinary').v2;
+cloudinary.config({
+  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+  api_key: process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_API_SECRET
+});
+
 const fs = require('fs');
 const path = require('path');
 const { pipeline } = require('stream/promises');
 
-async function safeLocalUpload(url, folder) {
+async function safeUpload(url, folder) {
     if (!url) return null;
+    
+    // Si tenemos Cloudinary configurado, subimos ahí
+    if (process.env.CLOUDINARY_API_KEY) {
+        try {
+            const uploadRes = await cloudinary.uploader.upload(url, { folder });
+            return uploadRes.secure_url;
+        } catch (e) {
+            console.error(`Error subiendo imagen a Cloudinary en ${folder}:`, e.message);
+        }
+    }
+    
+    // Si no hay Cloudinary o falló, guardamos localmente
     try {
         const fetch = (await import('node-fetch')).default || globalThis.fetch;
         const res = await fetch(url);
@@ -258,7 +278,7 @@ async function fetchFacebookPosts() {
         for (const p of res.data) {
             let imagen_url = p.full_picture || null;
             if (imagen_url) {
-                imagen_url = await safeLocalUpload(imagen_url, 'facebook_covers');
+                imagen_url = await safeUpload(imagen_url, 'facebook_covers');
             }
             
             posts.push({
@@ -301,7 +321,7 @@ async function fetchInstagramPosts() {
         for (const p of igRes.data) {
             let imagen_url = p.media_type === 'VIDEO' ? (p.thumbnail_url || p.media_url) : p.media_url;
             if (imagen_url) {
-                imagen_url = await safeLocalUpload(imagen_url, 'instagram_covers');
+                imagen_url = await safeUpload(imagen_url, 'instagram_covers');
             }
             
             posts.push({
@@ -372,7 +392,7 @@ async function fetchTikTokVideos() {
         for (const v of res.data.videos) {
             let imagen_url = v.cover || null;
             if (imagen_url) {
-                imagen_url = await safeLocalUpload(imagen_url, 'tiktok_covers');
+                imagen_url = await safeUpload(imagen_url, 'tiktok_covers');
             }
             posts.push({
                 plataforma: 'tiktok',
