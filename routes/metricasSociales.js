@@ -47,6 +47,33 @@ router.get('/publicaciones/:plataforma', async (req, res) => {
     }
 });
 
+// Obtener las publicaciones con mayor interacción general
+router.get('/top', async (req, res) => {
+    try {
+        const db = require('../db');
+        const limit = parseInt(req.query.limit) || 5;
+        
+        // Sumamos likes y comentarios para determinar el "engagement". 
+        // Se manejan nulos con COALESCE.
+        const result = await db.raw(`
+            SELECT plataforma, titulo, url, vistas, likes, comentarios, fecha_publicacion, imagen_url
+            FROM publicaciones_sociales
+            ORDER BY (COALESCE(likes, 0) + COALESCE(comentarios, 0) * 2 + COALESCE(vistas, 0) / 100) DESC
+            LIMIT ?
+        `, [limit]);
+        
+        const topPosts = result.rows || result;
+        
+        res.json({
+            success: true,
+            data: topPosts
+        });
+    } catch (error) {
+        console.error('Error al obtener top publicaciones:', error);
+        res.status(500).json({ success: false, message: 'Error del servidor' });
+    }
+});
+
 // Actualizar estado 'activo' y/o 'mostrar_en_todos' de una publicación raspada
 router.put('/publicaciones/:post_id', async (req, res) => {
     try {
