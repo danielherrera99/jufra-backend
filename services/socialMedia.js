@@ -169,11 +169,34 @@ async function fetchInstagramStats() {
         const igRes = await fetch(igUrl);
         const igData = await igRes.json();
 
+        let alcance = 0;
+        let interacciones = igData.media_count || 0;
+
+        // 3. Intentar obtener Insights (Requiere permiso instagram_manage_insights)
+        try {
+            const insightsUrl = `https://graph.facebook.com/v19.0/${igId}/insights?metric=impressions,profile_views&period=day&access_token=${token}`;
+            const insightsRes = await fetch(insightsUrl);
+            const insightsData = await insightsRes.json();
+            
+            if (insightsData.data) {
+                const impressionsObj = insightsData.data.find(m => m.name === 'impressions');
+                if (impressionsObj && impressionsObj.values && impressionsObj.values.length > 0) {
+                    alcance = impressionsObj.values[0].value;
+                }
+                const viewsObj = insightsData.data.find(m => m.name === 'profile_views');
+                if (viewsObj && viewsObj.values && viewsObj.values.length > 0) {
+                    interacciones = viewsObj.values[0].value; // Usamos profile_views como interacciones base del perfil
+                }
+            }
+        } catch (err) {
+            console.log("No se pudo obtener insights de Instagram (quizás falten permisos):", err.message);
+        }
+
         return {
             plataforma: 'instagram',
             seguidores: igData.followers_count || 0,
-            alcance: 0, 
-            interacciones: igData.media_count || 0, // Usamos interacciones para guardar la cantidad de posts
+            alcance: alcance, 
+            interacciones: interacciones,
             success: true
         };
     } catch (error) {
