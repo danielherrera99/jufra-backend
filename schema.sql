@@ -4,6 +4,7 @@
 SET session_replication_role = 'replica';
 
 -- 1. Eliminar tablas existentes si ya existen para permitir re-ejecución limpia
+DROP TABLE IF EXISTS finanzas CASCADE;
 DROP TABLE IF EXISTS ofs_config CASCADE;
 DROP TABLE IF EXISTS web_config CASCADE;
 DROP TABLE IF EXISTS fraternidades CASCADE;
@@ -329,3 +330,23 @@ CREATE TABLE ofs_config (
 
 -- Insertar configuración inicial por defecto
 INSERT INTO ofs_config (id) VALUES (1) ON CONFLICT DO NOTHING;
+
+-- 18. Creación de Tabla: finanzas
+CREATE TABLE finanzas (
+    id UUID PRIMARY KEY DEFAULT gen_random_uuid(),
+    tipo VARCHAR(10) NOT NULL,
+    monto NUMERIC(10, 2) NOT NULL,
+    fecha DATE NOT NULL DEFAULT CURRENT_DATE,
+    descripcion TEXT NOT NULL,
+    categoria VARCHAR(50) NOT NULL DEFAULT 'otros',
+    comprobante_url TEXT,
+    registrado_por UUID REFERENCES usuarios(id) ON DELETE SET NULL,
+    created_at TIMESTAMPTZ DEFAULT NOW(),
+    updated_at TIMESTAMPTZ DEFAULT NOW(),
+    
+    CONSTRAINT check_tipo_finanza CHECK (tipo IN ('ingreso', 'egreso')),
+    CONSTRAINT check_categoria_finanza CHECK (categoria IN ('diezmo', 'donacion', 'actividad', 'compras', 'servicios', 'otros'))
+);
+
+CREATE INDEX idx_finanzas_fecha ON finanzas(fecha);
+CREATE INDEX idx_finanzas_tipo ON finanzas(tipo);

@@ -85,6 +85,7 @@ app.use('/api/redes', require('./routes/redes'));
 app.use('/api/metricas-sociales', require('./routes/metricasSociales'));
 app.use('/api/galeria-web', require('./routes/galeriaWeb'));
 app.use('/api/quienes-somos', require('./routes/quienesSomos'));
+app.use('/api/finanzas', require('./routes/finanzas'));
 
 // Ruta de prueba
 app.get('/', (req, res) => {
