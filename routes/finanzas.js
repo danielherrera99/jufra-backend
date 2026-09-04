@@ -1,11 +1,10 @@
 const express = require('express');
 const router = express.Router();
 const Finanza = require('../models/Finanza');
-const auth = require('../middleware/auth');
-const checkRole = require('../middleware/checkRole');
+const { proteger, autorizarRoles } = require('../middleware/auth');
 
 // Obtener todas las finanzas y el balance
-router.get('/', auth, checkRole(['admin', 'consejo']), async (req, res) => {
+router.get('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
     try {
         const transacciones = await Finanza.find().sort({ fecha: -1, created_at: -1 }).populate('registradoPor');
 
@@ -38,7 +37,7 @@ router.get('/', auth, checkRole(['admin', 'consejo']), async (req, res) => {
 });
 
 // Obtener una transacción específica
-router.get('/:id', auth, checkRole(['admin', 'consejo']), async (req, res) => {
+router.get('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
     try {
         const transaccion = await Finanza.findById(req.params.id).populate('registradoPor');
         if (!transaccion) {
@@ -52,7 +51,7 @@ router.get('/:id', auth, checkRole(['admin', 'consejo']), async (req, res) => {
 });
 
 // Crear un nuevo registro financiero
-router.post('/', auth, checkRole(['admin', 'consejo']), async (req, res) => {
+router.post('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
     try {
         const { tipo, monto, fecha, descripcion, categoria, comprobante_url } = req.body;
         
@@ -80,7 +79,7 @@ router.post('/', auth, checkRole(['admin', 'consejo']), async (req, res) => {
 });
 
 // Actualizar un registro financiero
-router.put('/:id', auth, checkRole(['admin']), async (req, res) => {
+router.put('/:id', proteger, autorizarRoles('admin'), async (req, res) => {
     try {
         const { tipo, monto, fecha, descripcion, categoria, comprobante_url } = req.body;
         
@@ -110,7 +109,7 @@ router.put('/:id', auth, checkRole(['admin']), async (req, res) => {
 });
 
 // Eliminar un registro financiero
-router.delete('/:id', auth, checkRole(['admin']), async (req, res) => {
+router.delete('/:id', proteger, autorizarRoles('admin'), async (req, res) => {
     try {
         const transaccion = await Finanza.findById(req.params.id);
         if (!transaccion) {
