@@ -36,6 +36,67 @@ router.get('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) =
     }
 });
 
+// Exportar a Excel
+router.get('/exportar/excel', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
+    try {
+        const transacciones = await Finanza.find().sort({ fecha: -1, created_at: -1 }).populate('registradoPor');
+        
+        const ExcelJS = require('exceljs');
+        const workbook = new ExcelJS.Workbook();
+        const worksheet = workbook.addWorksheet('Finanzas');
+
+        worksheet.columns = [
+            { header: 'Fecha', key: 'fecha', width: 15 },
+            { header: 'Tipo', key: 'tipo', width: 10 },
+            { header: 'Categoría', key: 'categoria', width: 15 },
+            { header: 'Descripción', key: 'descripcion', width: 40 },
+            { header: 'Monto (S/)', key: 'monto', width: 15 },
+            { header: 'Registrado Por', key: 'registrado', width: 25 },
+        ];
+
+        // Estilos para cabecera
+        worksheet.getRow(1).font = { bold: true };
+        worksheet.getRow(1).fill = {
+            type: 'pattern',
+            pattern: 'solid',
+            fgColor: { argb: 'FFE0E0E0' }
+        };
+
+        let ingresos = 0;
+        let egresos = 0;
+
+        transacciones.forEach(t => {
+            const dateStr = t.fecha ? new Date(t.fecha).toLocaleDateString('es-PE') : '';
+            worksheet.addRow({
+                fecha: dateStr,
+                tipo: t.tipo === 'ingreso' ? 'Ingreso' : 'Egreso',
+                categoria: t.categoria,
+                descripcion: t.descripcion,
+                monto: parseFloat(t.monto),
+                registrado: t.registradoPor ? t.registradoPor.nombreCompleto : 'Desconocido'
+            });
+
+            if (t.tipo === 'ingreso') ingresos += parseFloat(t.monto);
+            else egresos += parseFloat(t.monto);
+        });
+
+        // Fila de total
+        worksheet.addRow({});
+        worksheet.addRow({ descripcion: 'TOTAL INGRESOS', monto: ingresos }).font = { bold: true };
+        worksheet.addRow({ descripcion: 'TOTAL EGRESOS', monto: egresos }).font = { bold: true };
+        worksheet.addRow({ descripcion: 'SALDO ACTUAL', monto: ingresos - egresos }).font = { bold: true };
+
+        res.setHeader('Content-Type', 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet');
+        res.setHeader('Content-Disposition', 'attachment; filename=Finanzas_JUFRA.xlsx');
+
+        await workbook.xlsx.write(res);
+        res.end();
+    } catch (error) {
+        console.error('Error al exportar finanzas:', error);
+        res.status(500).json({ success: false, message: 'Error al exportar registros' });
+    }
+});
+
 // Obtener una transacción específica
 router.get('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
     try {
