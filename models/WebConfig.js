@@ -18,6 +18,12 @@ const mappings = {
     whatsappUrl: 'whatsapp_url',
     tiktokUrl: 'tiktok_url',
     youtubeUrl: 'youtube_url',
+    promoActiva: 'promo_activa',
+    promoTitulo: 'promo_titulo',
+    promoDescripcion: 'promo_descripcion',
+    promoImagenUrl: 'promo_imagen_url',
+    promoBotonTexto: 'promo_boton_texto',
+    promoBotonLink: 'promo_boton_link',
     updatedAt: 'updated_at'
 };
 

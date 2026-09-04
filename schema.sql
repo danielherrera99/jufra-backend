@@ -302,6 +302,13 @@ CREATE TABLE web_config (
     instagram_url TEXT DEFAULT '',
     whatsapp_url TEXT DEFAULT '',
     tiktok_url TEXT DEFAULT '',
+    youtube_url TEXT DEFAULT '',
+    promo_activa BOOLEAN DEFAULT FALSE,
+    promo_titulo TEXT DEFAULT '¡Próxima Actividad!',
+    promo_descripcion TEXT DEFAULT 'Te invitamos a participar en nuestro próximo evento.',
+    promo_imagen_url TEXT DEFAULT '',
+    promo_boton_texto TEXT DEFAULT 'Saber más',
+    promo_boton_link TEXT DEFAULT '#eventos',
     updated_at TIMESTAMPTZ DEFAULT NOW(),
     CONSTRAINT solo_una_fila CHECK (id = 1)
 );
