@@ -4,8 +4,10 @@ const mappings = {
     titulo: 'titulo',
     descripcion: 'descripcion',
     fechaHora: 'fecha_hora',
-    ubicacion: 'ubicacion',
+    ubicacionTexto: 'ubicacion',
     mapQuery: 'map_query',
+    latitud: 'latitud',
+    longitud: 'longitud',
     cronograma: 'cronograma', // JSONB
     reglas: 'reglas', // JSONB
     isActive: 'is_active',
