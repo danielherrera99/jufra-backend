@@ -206,7 +206,7 @@ exports.generarCertificadoPDF = async (req, res) => {
         
         const templateConfig = {
             'plantilla_v_d_b.pdf': { petY: 0.535, ownerY: 0.485, ownerX: 0.48 },
-            'plantilla_v_d.pdf':   { petY: 0.535, ownerY: 0.49,  ownerX: 0.53 },
+            'plantilla_v_d.pdf':   { petY: 0.49,  ownerY: 0.445, ownerX: 0.49 },
             'plantilla_v_b.pdf':   { petY: 0.535, ownerY: 0.49,  ownerX: 0.48 },
             'plantilla_d_b.pdf':   { petY: 0.535, ownerY: 0.49,  ownerX: 0.48 },
             'plantilla_b.pdf':     { petY: 0.51,  ownerY: 0.455, ownerX: 0.42 },
