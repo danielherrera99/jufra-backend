@@ -64,7 +64,7 @@ exports.actualizarServicios = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Registro no encontrado.' });
         }
 
-        const result = await RegistroMascota.update(id, {
+        const result = await RegistroMascota.findByIdAndUpdate(id, {
             recibioBendicion: recibioBendicion !== undefined ? recibioBendicion : registro.recibioBendicion,
             recibioVacuna: recibioVacuna !== undefined ? recibioVacuna : registro.recibioVacuna,
             recibioDesparasitacion: recibioDesparasitacion !== undefined ? recibioDesparasitacion : registro.recibioDesparasitacion
@@ -88,7 +88,7 @@ exports.aprobarRegistro = async (req, res) => {
             return res.status(404).json({ success: false, message: 'Registro no encontrado.' });
         }
 
-        await RegistroMascota.update(id, { estadoAprobado: true });
+        await RegistroMascota.findByIdAndUpdate(id, { estadoAprobado: true });
         
         res.status(200).json({
             success: true,
