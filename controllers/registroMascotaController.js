@@ -43,7 +43,7 @@ exports.crearRegistro = async (req, res) => {
 
 exports.obtenerRegistros = async (req, res) => {
     try {
-        const registros = await RegistroMascota.find({}, { sortBy: 'created_at', order: 'desc' });
+        const registros = await RegistroMascota.find({}).sort({ created_at: -1 });
         res.status(200).json({
             success: true,
             data: registros
