@@ -193,20 +193,21 @@ exports.generarCertificadoPDF = async (req, res) => {
         // Escribir Nombre de Mascota
         drawCenteredText(
             registro.nombreMascota.toUpperCase(),
-            height - 275,
-            36,
+            height * 0.52, // Ajustado a la línea en blanco de la nueva plantilla
+            40,
             await pdfDoc.embedFont(StandardFonts.HelveticaBold),
-            rgb(0, 0, 0)
+            rgb(0.4, 0.2, 0) // Un color marrón oscuro que combine con la plantilla
         );
 
-        // Escribir Nombre de Dueño
-        drawCenteredText(
-            registro.nombreDueno.toUpperCase(),
-            height - 415,
-            24,
-            await pdfDoc.embedFont(StandardFonts.Helvetica),
-            rgb(0.2, 0.2, 0.2)
-        );
+        // El nombre del dueño está comentado porque en esta plantilla viene "quemado"
+        // como [Nombre del Dueño/Acompañante]
+        // drawCenteredText(
+        //     registro.nombreDueno.toUpperCase(),
+        //     height * 0.45,
+        //     24,
+        //     await pdfDoc.embedFont(StandardFonts.Helvetica),
+        //     rgb(0.2, 0.2, 0.2)
+        // );
 
         const pdfBytes = await pdfDoc.save();
 
