@@ -113,7 +113,11 @@ class BaseModel {
                 continue;
             }
 
-            pgData[pgKey] = v;
+            if (v && (Array.isArray(v) || (typeof v === 'object' && v.constructor === Object))) {
+                pgData[pgKey] = JSON.stringify(v);
+            } else {
+                pgData[pgKey] = v;
+            }
         }
         return pgData;
     }
