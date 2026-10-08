@@ -144,7 +144,7 @@ exports.generarCertificadoPDF = async (req, res) => {
 
         // Leer plantilla PDF
         // Nota: Asegúrate de colocar un archivo 'plantilla_certificado.pdf' en la carpeta 'uploads' o donde prefieras.
-        const templatePath = path.join(__dirname, '..', 'uploads', 'plantilla_certificado.pdf');
+        const templatePath = path.join(__dirname, '..', 'templates', 'plantilla_certificado.pdf');
         
         if (!fs.existsSync(templatePath)) {
              return res.status(400).json({ success: false, message: 'Plantilla de certificado no encontrada en el servidor. Comunícate con el administrador.' });
