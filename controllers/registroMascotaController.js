@@ -34,6 +34,14 @@ exports.crearRegistro = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Por favor, llena todos los campos.' });
         }
 
+        if (nombreDueno.length > 16) {
+            return res.status(400).json({ success: false, message: 'El nombre del dueño debe tener máximo 16 caracteres.' });
+        }
+
+        if (!/^\d+$/.test(whatsapp)) {
+            return res.status(400).json({ success: false, message: 'El WhatsApp debe contener solo números.' });
+        }
+
         const idSolicitudUnico = await generarIdSolicitudUnico();
 
         const nuevoRegistro = {
