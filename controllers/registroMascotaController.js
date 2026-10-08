@@ -139,7 +139,7 @@ exports.generarCertificadoPDF = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Tu registro aún no ha sido validado en la mesa de atención.' });
         }
 
-        const { PDFDocument, rgb } = require('pdf-lib');
+        const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
         const fontkit = require('@pdf-lib/fontkit'); // opcional si se usan fuentes personalizadas
 
         // Leer plantilla PDF
@@ -156,24 +156,37 @@ exports.generarCertificadoPDF = async (req, res) => {
 
         const pages = pdfDoc.getPages();
         const firstPage = pages[0];
-
-        // Lógica de coordenadas (esto dependerá de la plantilla real del usuario)
-        // Valores de ejemplo genéricos:
         const { width, height } = firstPage.getSize();
         
-        firstPage.drawText(registro.nombreMascota.toUpperCase(), {
-            x: 250,
-            y: 400,
-            size: 40,
-            color: rgb(0, 0, 0)
-        });
+        // Función auxiliar para centrar texto
+        const drawCenteredText = (text, y, size, fontToUse, color) => {
+            const textWidth = fontToUse.widthOfTextAtSize(text, size);
+            firstPage.drawText(text, {
+                x: (width / 2) - (textWidth / 2),
+                y: y,
+                size: size,
+                font: fontToUse,
+                color: color
+            });
+        };
 
-        firstPage.drawText(`Entregado a: ${registro.nombreDueno}`, {
-            x: 250,
-            y: 350,
-            size: 20,
-            color: rgb(0.2, 0.2, 0.2)
-        });
+        // Escribir Nombre de Mascota
+        drawCenteredText(
+            registro.nombreMascota.toUpperCase(),
+            height - 275,
+            36,
+            await pdfDoc.embedFont(StandardFonts.HelveticaBold),
+            rgb(0, 0, 0)
+        );
+
+        // Escribir Nombre de Dueño
+        drawCenteredText(
+            registro.nombreDueno.toUpperCase(),
+            height - 415,
+            24,
+            await pdfDoc.embedFont(StandardFonts.Helvetica),
+            rgb(0.2, 0.2, 0.2)
+        );
 
         const pdfBytes = await pdfDoc.save();
 
