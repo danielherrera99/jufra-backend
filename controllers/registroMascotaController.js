@@ -34,8 +34,8 @@ exports.crearRegistro = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Por favor, llena todos los campos.' });
         }
 
-        if (nombreDueno.length > 12) {
-            return res.status(400).json({ success: false, message: 'El nombre del dueño debe tener máximo 12 caracteres.' });
+        if (nombreDueno.length > 10) {
+            return res.status(400).json({ success: false, message: 'El nombre del dueño debe tener máximo 10 caracteres.' });
         }
 
         if (!/^\d+$/.test(whatsapp)) {
