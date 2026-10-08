@@ -205,14 +205,14 @@ exports.generarCertificadoPDF = async (req, res) => {
         const { width, height } = firstPage.getSize();
         
         const templateConfig = {
-            'plantilla_v_d_b.pdf': { petY: 0.535, ownerY: 0.485, ownerX: 0.58 },
-            'plantilla_v_d.pdf':   { petY: 0.535, ownerY: 0.49, ownerX: 0.58 },
-            'plantilla_v_b.pdf':   { petY: 0.535, ownerY: 0.49,  ownerX: 0.58 },
-            'plantilla_d_b.pdf':   { petY: 0.535, ownerY: 0.49,  ownerX: 0.58 },
-            'plantilla_b.pdf':     { petY: 0.51, ownerY: 0.455, ownerX: 0.52 },
-            'plantilla_v.pdf':     { petY: 0.535, ownerY: 0.495,  ownerX: 0.58 },
-            'plantilla_d.pdf':     { petY: 0.535, ownerY: 0.495,  ownerX: 0.58 },
-            'plantilla_certificado.pdf': { petY: 0.52, ownerY: 0.485, ownerX: 0.60 } // fallback
+            'plantilla_v_d_b.pdf': { petY: 0.535, ownerY: 0.485, ownerX: 0.48 },
+            'plantilla_v_d.pdf':   { petY: 0.535, ownerY: 0.49,  ownerX: 0.53 },
+            'plantilla_v_b.pdf':   { petY: 0.535, ownerY: 0.49,  ownerX: 0.48 },
+            'plantilla_d_b.pdf':   { petY: 0.535, ownerY: 0.49,  ownerX: 0.48 },
+            'plantilla_b.pdf':     { petY: 0.51,  ownerY: 0.455, ownerX: 0.42 },
+            'plantilla_v.pdf':     { petY: 0.535, ownerY: 0.495, ownerX: 0.47 },
+            'plantilla_d.pdf':     { petY: 0.535, ownerY: 0.495, ownerX: 0.47 },
+            'plantilla_certificado.pdf': { petY: 0.52, ownerY: 0.485, ownerX: 0.48 } // fallback
         };
 
         const coords = templateConfig[templateName] || templateConfig['plantilla_certificado.pdf'];
@@ -229,11 +229,10 @@ exports.generarCertificadoPDF = async (req, res) => {
             });
         };
 
-        // Función para dibujar texto en X y Y específicos (proporcionales)
+        // Función para dibujar texto alineado a la izquierda en X y Y específicos (proporcionales)
         const drawTextAt = (text, xPct, yPct, size, fontToUse, color) => {
-            const textWidth = fontToUse.widthOfTextAtSize(text, size);
             firstPage.drawText(text, {
-                x: (width * xPct) - (textWidth / 2), // Centrado en ese punto X
+                x: width * xPct, // Alineado a la izquierda a partir de este porcentaje
                 y: height * yPct,
                 size: size,
                 font: fontToUse,
