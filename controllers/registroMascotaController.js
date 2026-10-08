@@ -3,9 +3,10 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-// Generador de ID corto (ej: JF-A4F32B)
+// Generador de ID corto (ej: M-4521)
 const generarIdSolicitud = () => {
-    return 'JF-' + crypto.randomBytes(3).toString('hex').toUpperCase();
+    const num = Math.floor(1000 + Math.random() * 9000);
+    return 'M-' + num;
 };
 
 exports.crearRegistro = async (req, res) => {
