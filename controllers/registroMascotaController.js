@@ -3,10 +3,10 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-// Generador de ID corto (ej: M-4521)
+// Generador de ID corto (ej: J-234)
 const generarIdSolicitud = () => {
-    const num = Math.floor(1000 + Math.random() * 9000);
-    return 'M-' + num;
+    const num = Math.floor(100 + Math.random() * 900); // 100 a 999
+    return 'J-' + num;
 };
 
 exports.crearRegistro = async (req, res) => {
