@@ -3,10 +3,27 @@ const crypto = require('crypto');
 const fs = require('fs');
 const path = require('path');
 
-// Generador de ID corto (ej: J-234)
-const generarIdSolicitud = () => {
-    const num = Math.floor(100 + Math.random() * 900); // 100 a 999
-    return 'J-' + num;
+// Función para generar ID único
+const generarIdSolicitudUnico = async () => {
+    let id;
+    let existe = true;
+    let intentos = 0;
+    while (existe) {
+        // Genera de 100 a 999 (o de 1000 a 9999 si ya hubo muchos intentos)
+        const min = intentos > 50 ? 1000 : 100;
+        const max = intentos > 50 ? 9000 : 900;
+        const num = Math.floor(min + Math.random() * max);
+        id = 'J-' + num;
+        
+        // Verificar en BD
+        const count = await RegistroMascota.countDocuments({ id_solicitud: id });
+        if (count === 0) {
+            existe = false;
+        }
+        intentos++;
+        if (intentos > 100) break; // Por seguridad extrema
+    }
+    return id;
 };
 
 exports.crearRegistro = async (req, res) => {
@@ -17,8 +34,10 @@ exports.crearRegistro = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Por favor, llena todos los campos.' });
         }
 
+        const idSolicitudUnico = await generarIdSolicitudUnico();
+
         const nuevoRegistro = {
-            idSolicitud: generarIdSolicitud(),
+            idSolicitud: idSolicitudUnico,
             nombreDueno,
             nombreMascota,
             whatsapp,
