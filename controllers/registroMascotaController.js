@@ -197,13 +197,13 @@ exports.generarCertificadoPDF = async (req, res) => {
         const { width, height } = firstPage.getSize();
         
         const templateConfig = {
-            'plantilla_v_d_b.pdf': { petY: 0.52, ownerY: 0.485, ownerX: 0.60 },
-            'plantilla_v_d.pdf':   { petY: 0.52, ownerY: 0.485, ownerX: 0.68 },
-            'plantilla_v_b.pdf':   { petY: 0.57, ownerY: 0.50,  ownerX: 0.62 },
-            'plantilla_d_b.pdf':   { petY: 0.57, ownerY: 0.50,  ownerX: 0.62 },
-            'plantilla_b.pdf':     { petY: 0.52, ownerY: 0.485, ownerX: 0.55 },
-            'plantilla_v.pdf':     { petY: 0.49, ownerY: 0.46,  ownerX: 0.64 },
-            'plantilla_d.pdf':     { petY: 0.49, ownerY: 0.46,  ownerX: 0.64 },
+            'plantilla_v_d_b.pdf': { petY: 0.535, ownerY: 0.485, ownerX: 0.58 },
+            'plantilla_v_d.pdf':   { petY: 0.535, ownerY: 0.49, ownerX: 0.58 },
+            'plantilla_v_b.pdf':   { petY: 0.535, ownerY: 0.49,  ownerX: 0.58 },
+            'plantilla_d_b.pdf':   { petY: 0.535, ownerY: 0.49,  ownerX: 0.58 },
+            'plantilla_b.pdf':     { petY: 0.50, ownerY: 0.475, ownerX: 0.55 },
+            'plantilla_v.pdf':     { petY: 0.535, ownerY: 0.495,  ownerX: 0.58 },
+            'plantilla_d.pdf':     { petY: 0.535, ownerY: 0.495,  ownerX: 0.58 },
             'plantilla_certificado.pdf': { petY: 0.52, ownerY: 0.485, ownerX: 0.60 } // fallback
         };
 
