@@ -196,32 +196,57 @@ exports.generarCertificadoPDF = async (req, res) => {
         const firstPage = pages[0];
         const { width, height } = firstPage.getSize();
         
-        // Función auxiliar para centrar texto
+        const templateConfig = {
+            'plantilla_v_d_b.pdf': { petY: 0.52, ownerY: 0.485, ownerX: 0.60 },
+            'plantilla_v_d.pdf':   { petY: 0.52, ownerY: 0.485, ownerX: 0.68 },
+            'plantilla_v_b.pdf':   { petY: 0.57, ownerY: 0.50,  ownerX: 0.62 },
+            'plantilla_d_b.pdf':   { petY: 0.57, ownerY: 0.50,  ownerX: 0.62 },
+            'plantilla_b.pdf':     { petY: 0.52, ownerY: 0.485, ownerX: 0.55 },
+            'plantilla_v.pdf':     { petY: 0.49, ownerY: 0.46,  ownerX: 0.64 },
+            'plantilla_d.pdf':     { petY: 0.49, ownerY: 0.46,  ownerX: 0.64 },
+            'plantilla_certificado.pdf': { petY: 0.52, ownerY: 0.485, ownerX: 0.60 } // fallback
+        };
+
+        const coords = templateConfig[templateName] || templateConfig['plantilla_certificado.pdf'];
+
+        // Función auxiliar para centrar texto en X, usando una Y específica
         const drawCenteredText = (text, y, size, fontToUse, color) => {
             const textWidth = fontToUse.widthOfTextAtSize(text, size);
             firstPage.drawText(text, {
                 x: (width / 2) - (textWidth / 2),
-                y: y,
+                y: height * y,
                 size: size,
                 font: fontToUse,
                 color: color
             });
         };
 
-        // Escribir Nombre de Mascota
+        // Función para dibujar texto en X y Y específicos (proporcionales)
+        const drawTextAt = (text, xPct, yPct, size, fontToUse, color) => {
+            const textWidth = fontToUse.widthOfTextAtSize(text, size);
+            firstPage.drawText(text, {
+                x: (width * xPct) - (textWidth / 2), // Centrado en ese punto X
+                y: height * yPct,
+                size: size,
+                font: fontToUse,
+                color: color
+            });
+        };
+
+        // Escribir Nombre de Mascota (siempre centrado)
         drawCenteredText(
             registro.nombreMascota.toUpperCase(),
-            height * 0.52, // Ajustado a la línea en blanco de la nueva plantilla
+            coords.petY,
             40,
             await pdfDoc.embedFont(StandardFonts.HelveticaBold),
-            rgb(0.4, 0.2, 0) // Un color marrón oscuro que combine con la plantilla
+            rgb(0.4, 0.2, 0)
         );
 
-        // El nombre del dueño está comentado porque en esta plantilla viene "quemado"
-        // como [Nombre del Dueño/Acompañante]
-        drawCenteredText(
+        // Escribir Nombre de Dueño (en las coordenadas específicas)
+        drawTextAt(
             registro.nombreDueno.toUpperCase(),
-            height * 0.45,
+            coords.ownerX,
+            coords.ownerY,
             24,
             await pdfDoc.embedFont(StandardFonts.Helvetica),
             rgb(0.2, 0.2, 0.2)
