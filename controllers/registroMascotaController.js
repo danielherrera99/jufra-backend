@@ -201,13 +201,13 @@ exports.generarCertificadoPDF = async (req, res) => {
 
         // El nombre del dueño está comentado porque en esta plantilla viene "quemado"
         // como [Nombre del Dueño/Acompañante]
-        // drawCenteredText(
-        //     registro.nombreDueno.toUpperCase(),
-        //     height * 0.45,
-        //     24,
-        //     await pdfDoc.embedFont(StandardFonts.Helvetica),
-        //     rgb(0.2, 0.2, 0.2)
-        // );
+        drawCenteredText(
+            registro.nombreDueno.toUpperCase(),
+            height * 0.45,
+            24,
+            await pdfDoc.embedFont(StandardFonts.Helvetica),
+            rgb(0.2, 0.2, 0.2)
+        );
 
         const pdfBytes = await pdfDoc.save();
 
