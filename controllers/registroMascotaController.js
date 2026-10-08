@@ -34,8 +34,8 @@ exports.crearRegistro = async (req, res) => {
             return res.status(400).json({ success: false, message: 'Por favor, llena todos los campos.' });
         }
 
-        if (nombreDueno.length > 16) {
-            return res.status(400).json({ success: false, message: 'El nombre del dueño debe tener máximo 16 caracteres.' });
+        if (nombreDueno.length > 14) {
+            return res.status(400).json({ success: false, message: 'El nombre del dueño debe tener máximo 14 caracteres.' });
         }
 
         if (!/^\d+$/.test(whatsapp)) {
@@ -209,7 +209,7 @@ exports.generarCertificadoPDF = async (req, res) => {
             'plantilla_v_d.pdf':   { petY: 0.535, ownerY: 0.49, ownerX: 0.58 },
             'plantilla_v_b.pdf':   { petY: 0.535, ownerY: 0.49,  ownerX: 0.58 },
             'plantilla_d_b.pdf':   { petY: 0.535, ownerY: 0.49,  ownerX: 0.58 },
-            'plantilla_b.pdf':     { petY: 0.495, ownerY: 0.455, ownerX: 0.52 },
+            'plantilla_b.pdf':     { petY: 0.51, ownerY: 0.455, ownerX: 0.52 },
             'plantilla_v.pdf':     { petY: 0.535, ownerY: 0.495,  ownerX: 0.58 },
             'plantilla_d.pdf':     { petY: 0.535, ownerY: 0.495,  ownerX: 0.58 },
             'plantilla_certificado.pdf': { petY: 0.52, ownerY: 0.485, ownerX: 0.60 } // fallback
