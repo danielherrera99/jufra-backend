@@ -162,9 +162,27 @@ exports.generarCertificadoPDF = async (req, res) => {
         const { PDFDocument, rgb, StandardFonts } = require('pdf-lib');
         const fontkit = require('@pdf-lib/fontkit'); // opcional si se usan fuentes personalizadas
 
-        // Leer plantilla PDF
-        // Nota: Asegúrate de colocar un archivo 'plantilla_certificado.pdf' en la carpeta 'uploads' o donde prefieras.
-        const templatePath = path.join(__dirname, '..', 'templates', 'plantilla_certificado.pdf');
+        // Lógica de selección de plantilla
+        let templateName = 'plantilla_certificado.pdf'; // fallback
+        const { recibioBendicion, recibioVacuna, recibioDesparasitacion } = registro;
+
+        if (recibioVacuna && recibioDesparasitacion && recibioBendicion) {
+            templateName = 'plantilla_v_d_b.pdf';
+        } else if (recibioVacuna && recibioDesparasitacion && !recibioBendicion) {
+            templateName = 'plantilla_v_d.pdf';
+        } else if (recibioVacuna && !recibioDesparasitacion && recibioBendicion) {
+            templateName = 'plantilla_v_b.pdf';
+        } else if (!recibioVacuna && recibioDesparasitacion && recibioBendicion) {
+            templateName = 'plantilla_d_b.pdf';
+        } else if (!recibioVacuna && !recibioDesparasitacion && recibioBendicion) {
+            templateName = 'plantilla_b.pdf';
+        } else if (recibioVacuna && !recibioDesparasitacion && !recibioBendicion) {
+            templateName = 'plantilla_v.pdf'; // Pendiente de crear
+        } else if (!recibioVacuna && recibioDesparasitacion && !recibioBendicion) {
+            templateName = 'plantilla_d.pdf'; // Pendiente de crear
+        }
+
+        const templatePath = path.join(__dirname, '..', 'templates', templateName);
         
         if (!fs.existsSync(templatePath)) {
              return res.status(400).json({ success: false, message: 'Plantilla de certificado no encontrada en el servidor. Comunícate con el administrador.' });
