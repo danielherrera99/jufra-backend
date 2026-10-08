@@ -262,7 +262,8 @@ exports.generarCertificadoPDF = async (req, res) => {
         const pdfBytes = await pdfDoc.save();
 
         res.setHeader('Content-Type', 'application/pdf');
-        res.setHeader('Content-Disposition', `attachment; filename=Certificado_${registro.nombreMascota.replace(/ /g, '_')}.pdf`);
+        const safeName = registro.nombreMascota.replace(/[^a-zA-Z0-9]/g, '_');
+        res.setHeader('Content-Disposition', `attachment; filename=Certificado_${safeName}.pdf`);
         res.send(Buffer.from(pdfBytes));
         
     } catch (error) {
