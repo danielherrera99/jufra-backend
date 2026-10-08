@@ -210,8 +210,8 @@ exports.generarCertificadoPDF = async (req, res) => {
             'plantilla_v_b.pdf':   { petY: 0.535, ownerY: 0.49,  ownerX: 0.48 },
             'plantilla_d_b.pdf':   { petY: 0.535, ownerY: 0.49,  ownerX: 0.48 },
             'plantilla_b.pdf':     { petY: 0.51,  ownerY: 0.455, ownerX: 0.42 },
-            'plantilla_v.pdf':     { petY: 0.525, ownerY: 0.48,  ownerX: 0.455 },
-            'plantilla_d.pdf':     { petY: 0.525, ownerY: 0.48,  ownerX: 0.455 },
+            'plantilla_v.pdf':     { petY: 0.525, ownerY: 0.48,  ownerX: 0.50 },
+            'plantilla_d.pdf':     { petY: 0.525, ownerY: 0.48,  ownerX: 0.50 },
             'plantilla_certificado.pdf': { petY: 0.52, ownerY: 0.485, ownerX: 0.48 } // fallback
         };
 
