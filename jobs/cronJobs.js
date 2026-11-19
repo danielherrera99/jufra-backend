@@ -24,7 +24,7 @@ function startCronJobs() {
             
             const resultados = [fb, ig, yt, ga, tk];
 
-            // 2. Guardar en Base de Datos
+            // 2. Guardar en Base de Datos (reemplazando si ya existe para evitar error 23505 unique constraint)
             for (const resultado of resultados) {
                 if (resultado.success) {
                     const datosParaGuardar = {
@@ -35,6 +35,11 @@ function startCronJobs() {
                         interacciones: resultado.interacciones
                     };
                     
+                    const existentes = await MetricaSocial.find({ fecha: fechaActual, plataforma: resultado.plataforma });
+                    for (const ex of existentes) {
+                        await ex.deleteOne();
+                    }
+
                     await MetricaSocial.create(datosParaGuardar);
                     console.log(`[Cron] ✅ Métricas guardadas para ${resultado.plataforma}`);
                 } else {
