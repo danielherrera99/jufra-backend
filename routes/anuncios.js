@@ -55,6 +55,11 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('im
             imagen = req.body.imagen;
         }
 
+        const esSuperAdmin = req.usuario.rol === 'superadmin' || req.usuario.rol === 'admin_nacional';
+        const targetFraternidadId = (esSuperAdmin && req.body.fraternidadId)
+            ? req.body.fraternidadId
+            : (req.usuario.fraternidadId || req.usuario.fraternidad_id);
+
         const anuncioData = {
             titulo,
             contenido,
@@ -64,7 +69,8 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('im
             fechaExpiracion,
             destacado,
             destinatarios,
-            autor: req.usuario._id
+            autor: req.usuario._id,
+            fraternidadId: targetFraternidadId
         };
 
         const hasUbicacion = lat !== undefined && lat !== null && lat !== '' && 
@@ -81,9 +87,11 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('im
 
         await anuncio.populate('autor', 'nombre apellido cargo');
 
-        // Notificar a todos los usuarios activos a través de Push Notifications
+        // Notificar a los usuarios activos de la fraternidad a través de Push Notifications
         try {
-            const usuariosActivos = await Usuario.find({ activo: true, expoPushToken: { $ne: null } });
+            const queryNotif = { activo: true, expoPushToken: { $ne: null } };
+            if (targetFraternidadId) queryNotif.fraternidadId = targetFraternidadId;
+            const usuariosActivos = await Usuario.find(queryNotif);
             const tokens = usuariosActivos.map(u => u.expoPushToken);
             if (tokens.length > 0) {
                 const badgeStr = prioridad === 'alta' ? '🚨' : '📢';
@@ -144,6 +152,19 @@ router.get('/', proteger, async (req, res) => {
             { fechaExpiracion: null },
             { fechaExpiracion: { $gt: new Date() } }
         ];
+
+        // Filtro Multi-Tenant: SuperAdmin ve todo o filtra por ?fraternidadId=..., locales ven su fraternidad
+        const esSuperAdmin = req.usuario.rol === 'superadmin' || req.usuario.rol === 'admin_nacional';
+        if (esSuperAdmin) {
+            if (req.query.fraternidadId) {
+                filtro.fraternidadId = req.query.fraternidadId;
+            }
+        } else {
+            const fratId = req.usuario.fraternidadId || req.usuario.fraternidad_id;
+            if (fratId) {
+                filtro.fraternidadId = fratId;
+            }
+        }
 
         const anuncios = await Anuncio.find(filtro)
             .populate('autor', 'nombre apellido cargo foto')

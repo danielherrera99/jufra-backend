@@ -5,7 +5,8 @@ class FinanzaModel extends BaseModel {
         super('finanzas', {
             // Mapeos adicionales si se necesitan (BaseModel ya mapea createdAt, updatedAt)
             comprobanteUrl: 'comprobante_url',
-            registradoPor: 'registrado_por'
+            registradoPor: 'registrado_por',
+            fraternidadId: 'fraternidad_id'
         });
     }
 

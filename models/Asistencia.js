@@ -5,7 +5,8 @@ const mappings = {
     tipoReunion: 'tipo_reunion',
     metodoRegistro: 'metodo_registro',
     registradoPor: 'registrado_por',
-    usuario: 'usuario_id'
+    usuario: 'usuario_id',
+    fraternidadId: 'fraternidad_id'
 };
 
 module.exports = new BaseModel('asistencias', mappings);

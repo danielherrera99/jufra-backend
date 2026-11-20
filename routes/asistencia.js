@@ -20,6 +20,9 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) 
             });
         }
 
+        // Determinar fraternidad de la asistencia
+        const fratId = hermano.fraternidadId || hermano.fraternidad_id || req.usuario.fraternidadId || req.usuario.fraternidad_id;
+
         // Crear registro de asistencia
         const asistencia = await Asistencia.create({
             usuario,
@@ -29,7 +32,8 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) 
             presente: estado === 'presente',
             metodoRegistro,
             observaciones,
-            registradoPor: req.usuario._id
+            registradoPor: req.usuario._id,
+            fraternidadId: fratId
         });
 
         await asistencia.populate('usuario', 'nombre apellido foto');
@@ -94,7 +98,8 @@ router.post('/lote', proteger, autorizarRoles('admin', 'consejo'), async (req, r
                             presente: asis.estado === 'presente',
                             metodoRegistro: 'manual_web',
                             observaciones: asis.observaciones || '',
-                            registradoPor: req.usuario._id
+                            registradoPor: req.usuario._id,
+                            fraternidadId: req.usuario.fraternidadId || req.usuario.fraternidad_id
                         }
                     },
                     upsert: true
@@ -145,7 +150,8 @@ router.post('/qr', proteger, async (req, res) => {
             tipoReunion: tipoReunion || 'semanal',
             presente: true,
             metodoRegistro: 'qr',
-            registradoPor: req.usuario._id
+            registradoPor: req.usuario._id,
+            fraternidadId: hermano.fraternidadId || hermano.fraternidad_id || req.usuario.fraternidadId || req.usuario.fraternidad_id
         });
 
         await asistencia.populate('usuario', 'nombre apellido foto');
@@ -185,6 +191,19 @@ router.get('/', proteger, async (req, res) => {
         if (fecha) filtro.fecha = { $gte: new Date(fecha) };
         if (tipoReunion) filtro.tipoReunion = tipoReunion;
         if (usuario) filtro.usuario = usuario;
+
+        // Filtro Multi-Tenant: Superadmin puede ver todo o filtrar por fraternidadId, locales ven solo la suya
+        const esSuperAdmin = req.usuario.rol === 'superadmin' || req.usuario.rol === 'admin_nacional';
+        if (esSuperAdmin) {
+            if (req.query.fraternidadId) {
+                filtro.fraternidadId = req.query.fraternidadId;
+            }
+        } else {
+            const fratId = req.usuario.fraternidadId || req.usuario.fraternidad_id;
+            if (fratId) {
+                filtro.fraternidadId = fratId;
+            }
+        }
 
         const asistencias = await Asistencia.find(filtro)
             .populate('usuario', 'nombre apellido foto')

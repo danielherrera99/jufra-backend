@@ -6,7 +6,20 @@ const { proteger, autorizarRoles } = require('../middleware/auth');
 // Obtener todas las finanzas y el balance
 router.get('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
     try {
-        const transacciones = await Finanza.find().sort({ fecha: -1, created_at: -1 }).populate('registradoPor');
+        const filtro = {};
+        const esSuperAdmin = req.usuario.rol === 'superadmin' || req.usuario.rol === 'admin_nacional';
+        if (esSuperAdmin) {
+            if (req.query.fraternidadId) {
+                filtro.fraternidadId = req.query.fraternidadId;
+            }
+        } else {
+            const fratId = req.usuario.fraternidadId || req.usuario.fraternidad_id;
+            if (fratId) {
+                filtro.fraternidadId = fratId;
+            }
+        }
+
+        const transacciones = await Finanza.find(filtro).sort({ fecha: -1, created_at: -1 }).populate('registradoPor');
 
         let ingresosTotales = 0;
         let egresosTotales = 0;
@@ -39,7 +52,20 @@ router.get('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) =
 // Exportar a Excel
 router.get('/exportar/excel', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
     try {
-        const transacciones = await Finanza.find().sort({ fecha: -1, created_at: -1 }).populate('registradoPor');
+        const filtro = {};
+        const esSuperAdmin = req.usuario.rol === 'superadmin' || req.usuario.rol === 'admin_nacional';
+        if (esSuperAdmin) {
+            if (req.query.fraternidadId) {
+                filtro.fraternidadId = req.query.fraternidadId;
+            }
+        } else {
+            const fratId = req.usuario.fraternidadId || req.usuario.fraternidad_id;
+            if (fratId) {
+                filtro.fraternidadId = fratId;
+            }
+        }
+
+        const transacciones = await Finanza.find(filtro).sort({ fecha: -1, created_at: -1 }).populate('registradoPor');
         
         const ExcelJS = require('exceljs');
         const workbook = new ExcelJS.Workbook();
@@ -120,6 +146,11 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) 
             return res.status(400).json({ success: false, message: 'Faltan campos obligatorios' });
         }
 
+        const esSuperAdmin = req.usuario.rol === 'superadmin' || req.usuario.rol === 'admin_nacional';
+        const targetFraternidadId = (esSuperAdmin && req.body.fraternidadId)
+            ? req.body.fraternidadId
+            : (req.usuario.fraternidadId || req.usuario.fraternidad_id);
+
         const nuevaFinanza = await Finanza.create({
             tipo,
             monto,
@@ -127,7 +158,8 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) 
             descripcion,
             categoria: categoria || 'otros',
             comprobante_url: comprobante_url || null,
-            registrado_por: req.usuario.id
+            registrado_por: req.usuario.id,
+            fraternidadId: targetFraternidadId
         });
 
         const transaccionCompletada = await Finanza.findById(nuevaFinanza.id).populate('registradoPor');

@@ -71,6 +71,18 @@ router.get('/', proteger, async (req, res) => {
             }
         }
 
+        const esSuperAdmin = req.usuario.rol === 'superadmin' || req.usuario.rol === 'admin_nacional';
+        if (esSuperAdmin) {
+            if (req.query.fraternidadId) {
+                query.fraternidadId = req.query.fraternidadId;
+            }
+        } else {
+            const fratId = req.usuario.fraternidadId || req.usuario.fraternidad_id;
+            if (fratId) {
+                query.fraternidadId = fratId;
+            }
+        }
+
         const eventos = await Evento.find(query)
             .sort(sortOption)
             .populate('creadoPor', 'nombre apellido');
@@ -130,6 +142,11 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo', 'coordinador'), up
             publicar_web = false;
         }
 
+        const esSuperAdmin = req.usuario.rol === 'superadmin' || req.usuario.rol === 'admin_nacional';
+        const targetFraternidadId = (esSuperAdmin && req.body.fraternidadId)
+            ? req.body.fraternidadId
+            : (req.usuario.fraternidadId || req.usuario.fraternidad_id);
+
         const eventoData = {
             titulo,
             descripcion,
@@ -140,7 +157,8 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo', 'coordinador'), up
             visibilidad: req.body.visibilidad || 'todos',
             creadoPor: req.usuario._id,
             imagenUrl,
-            publicar_web
+            publicar_web,
+            fraternidadId: targetFraternidadId
         };
 
         const hasUbicacion = lat !== undefined && lat !== null && lat !== '' && 
