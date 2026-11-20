@@ -13,8 +13,8 @@ const db = knex({
         ssl: { rejectUnauthorized: false } // Requerido para conexiones seguras en Render/producción
     },
     pool: {
-        min: 2,
-        max: 10,
+        min: 0,
+        max: process.env.VERCEL ? 3 : 10,
         createTimeoutMillis: 30000,
         acquireTimeoutMillis: 30000,
         idleTimeoutMillis: 30000,
@@ -23,13 +23,15 @@ const db = knex({
     }
 });
 
-// Probar conexión inicial
-db.raw('SELECT 1')
-    .then(() => {
-        console.log('✅ Conexión exitosa a Supabase PostgreSQL (vía Knex)');
-    })
-    .catch((err) => {
-        console.error('❌ Error de conexión a Supabase PostgreSQL:', err.message);
-    });
+// Probar conexión inicial (solo fuera de Vercel para optimizar cold starts)
+if (!process.env.VERCEL) {
+    db.raw('SELECT 1')
+        .then(() => {
+            console.log('✅ Conexión exitosa a Supabase PostgreSQL (vía Knex)');
+        })
+        .catch((err) => {
+            console.error('❌ Error de conexión a Supabase PostgreSQL:', err.message);
+        });
+}
 
 module.exports = db;

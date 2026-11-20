@@ -19,47 +19,49 @@ app.use('/uploads', express.static('uploads'));
 const db = require('./db');
 const bcrypt = require('bcryptjs');
 
-db.raw('SELECT 1')
-    .then(async () => {
-        console.log('✅ Base de datos PostgreSQL conectada exitosamente');
+if (!process.env.VERCEL) {
+    db.raw('SELECT 1')
+        .then(async () => {
+            console.log('✅ Base de datos PostgreSQL conectada exitosamente');
 
-        // Crear o actualizar usuario por defecto
-        try {
-            const usuarioJufra = await db('usuarios').where('username', 'Jufra').first();
-            const salt = await bcrypt.genSalt(10);
-            const hashedPassword = await bcrypt.hash('201599', salt);
+            // Crear o actualizar usuario por defecto
+            try {
+                const usuarioJufra = await db('usuarios').where('username', 'Jufra').first();
+                const salt = await bcrypt.genSalt(10);
+                const hashedPassword = await bcrypt.hash('201599', salt);
 
-            if (!usuarioJufra) {
-                // Crear si no existe
-                await db('usuarios').insert({
-                    nombre: 'Administrador',
-                    apellido: 'JUFRA',
-                    username: 'Jufra',
-                    password: hashedPassword,
-                    rol: 'admin',
-                    cargo: 'coordinador',
-                    email: 'admin@jufra.com',
-                    activo: true
-                });
-                console.log('👤 Usuario por defecto "Jufra" creado exitosamente');
-            } else {
-                // Actualizar contraseña si ya existe (para asegurar acceso)
-                await db('usuarios').where('id', usuarioJufra.id).update({
-                    password: hashedPassword,
-                    rol: 'admin', // Asegurar rol admin
-                    activo: true, // Asegurar que esté activo
-                    email: usuarioJufra.email || 'admin@jufra.com',
-                    updated_at: new Date()
-                });
-                console.log('🔄 Usuario por defecto "Jufra" actualizado/verificado');
+                if (!usuarioJufra) {
+                    // Crear si no existe
+                    await db('usuarios').insert({
+                        nombre: 'Administrador',
+                        apellido: 'JUFRA',
+                        username: 'Jufra',
+                        password: hashedPassword,
+                        rol: 'admin',
+                        cargo: 'coordinador',
+                        email: 'admin@jufra.com',
+                        activo: true
+                    });
+                    console.log('👤 Usuario por defecto "Jufra" creado exitosamente');
+                } else {
+                    // Actualizar contraseña si ya existe (para asegurar acceso)
+                    await db('usuarios').where('id', usuarioJufra.id).update({
+                        password: hashedPassword,
+                        rol: 'admin', // Asegurar rol admin
+                        activo: true, // Asegurar que esté activo
+                        email: usuarioJufra.email || 'admin@jufra.com',
+                        updated_at: new Date()
+                    });
+                    console.log('🔄 Usuario por defecto "Jufra" actualizado/verificado');
+                }
+            } catch (error) {
+                console.error('❌ Error al gestionar usuario por defecto:', error);
             }
-        } catch (error) {
-            console.error('❌ Error al gestionar usuario por defecto:', error);
-        }
-    })
-    .catch((err) => {
-        console.error('❌ Error al conectar a PostgreSQL:', err.message);
-    });
+        })
+        .catch((err) => {
+            console.error('❌ Error al conectar a PostgreSQL:', err.message);
+        });
+}
 
 // Rutas
 app.use('/api/auth', require('./routes/auth'));
@@ -112,13 +114,16 @@ app.use((err, req, res, next) => {
 // Puerto
 const PORT = process.env.PORT || 5000;
 
-// Iniciar tareas automáticas (Cron Jobs)
-const { startCronJobs } = require('./jobs/cronJobs');
-startCronJobs();
+// En Vercel Serverless, app.listen y cron jobs no se inician como servicio continuo
+if (!process.env.VERCEL) {
+    // Iniciar tareas automáticas (Cron Jobs)
+    const { startCronJobs } = require('./jobs/cronJobs');
+    startCronJobs();
 
-app.listen(PORT, () => {
-    console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
-    console.log(`🌐 http://localhost:${PORT}`);
-});
+    app.listen(PORT, () => {
+        console.log(`🚀 Servidor corriendo en puerto ${PORT}`);
+        console.log(`🌐 http://localhost:${PORT}`);
+    });
+}
 
 module.exports = app;
