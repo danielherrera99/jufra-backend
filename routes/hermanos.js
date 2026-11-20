@@ -11,7 +11,9 @@ router.get('/', proteger, async (req, res) => {
         let query = { activo: true };
 
         // Si es admin o consejo, permitir ver inactivos/pendientes
-        const esAdmin = req.usuario.rol === 'admin' ||
+        const esSuperAdmin = req.usuario.rol === 'superadmin' || req.usuario.rol === 'admin_nacional';
+        const esAdmin = esSuperAdmin ||
+            req.usuario.rol === 'admin' ||
             req.usuario.rol === 'consejo' ||
             ['coordinador', 'vice-coordinador', 'secretario', 'tesorero', 'formador', 'animador'].includes(req.usuario.cargo);
 
@@ -20,6 +22,18 @@ router.get('/', proteger, async (req, res) => {
                 query = {};
             } else if (req.query.pendientes === 'true') {
                 query = { activo: false };
+            }
+        }
+
+        // Filtro Multi-Tenant por fraternidad
+        if (esSuperAdmin) {
+            if (req.query.fraternidadId) {
+                query.fraternidadId = req.query.fraternidadId;
+            }
+        } else {
+            const fratId = req.usuario.fraternidadId || req.usuario.fraternidad_id;
+            if (fratId) {
+                query.fraternidadId = fratId;
             }
         }
 

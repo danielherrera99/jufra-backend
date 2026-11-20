@@ -10,7 +10,8 @@ const mappings = {
     codigoQR: 'codigo_qr',
     expoPushToken: 'expo_push_token',
     resetPasswordCode: 'reset_password_code',
-    resetPasswordExpire: 'reset_password_expire'
+    resetPasswordExpire: 'reset_password_expire',
+    fraternidadId: 'fraternidad_id'
 };
 
 module.exports = new BaseModel('usuarios', mappings);

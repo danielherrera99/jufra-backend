@@ -2,6 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { body, validationResult } = require('express-validator');
 const Usuario = require('../models/Usuario');
+const Fraternidad = require('../models/Fraternidad');
 const { generarToken } = require('../middleware/auth');
 const QRCode = require('qrcode');
 const multer = require('multer');
@@ -119,6 +120,13 @@ router.post('/registro', [
             }
         }
 
+        // Determinar fraternidad asignada (Pomalca por defecto)
+        let fraternidadIdToAssign = req.body.fraternidadId || req.body.fraternidad_id;
+        if (!fraternidadIdToAssign) {
+            const pomalca = await Fraternidad.findOne({ nombre: 'JUFRA POMALCA' });
+            if (pomalca) fraternidadIdToAssign = pomalca._id || pomalca.id;
+        }
+
         // Crear usuario
         const usuario = await Usuario.create({
             nombre,
@@ -129,7 +137,8 @@ router.post('/registro', [
             telefono,
             fechaNacimiento,
             contactoEmergencia,
-            nombreContactoEmergencia
+            nombreContactoEmergencia,
+            fraternidadId: fraternidadIdToAssign
         });
 
         // Generar código QR para el usuario
@@ -219,6 +228,15 @@ router.post('/login', [
             }
         }
 
+        // Obtener datos de la fraternidad asignada
+        let fraternidadData = null;
+        const fratId = usuario.fraternidadId || usuario.fraternidad_id;
+        if (fratId) {
+            try {
+                fraternidadData = await Fraternidad.findById(fratId);
+            } catch (fErr) {}
+        }
+
         // Generar token
         const token = generarToken(usuario._id);
 
@@ -235,7 +253,11 @@ router.post('/login', [
                 rol: usuario.rol,
                 cargo: usuario.cargo,
                 foto: usuario.foto,
-                codigoQR: usuario.codigoQR
+                codigoQR: usuario.codigoQR,
+                fraternidadId: fratId || null,
+                fraternidadNombre: fraternidadData ? fraternidadData.nombre : null,
+                fraternidadZona: fraternidadData ? fraternidadData.zona : null,
+                isSuperAdmin: usuario.rol === 'superadmin' || usuario.rol === 'admin_nacional'
             }
         });
     } catch (error) {

@@ -44,6 +44,11 @@ exports.proteger = async (req, res, next) => {
 // Autorizar roles específicos
 exports.autorizarRoles = (...roles) => {
     return (req, res, next) => {
+        // Superadmin siempre tiene acceso global a todos los recursos
+        if (req.usuario.rol === 'superadmin' || req.usuario.rol === 'admin_nacional') {
+            return next();
+        }
+
         const cargosConsejo = ['coordinador', 'vice-coordinador', 'secretario', 'tesorero', 'formador', 'animador'];
 
         // Si el usuario tiene rol permitido

@@ -1,8 +1,10 @@
 const knex = require('knex');
 const dotenv = require('dotenv');
 
+const path = require('path');
+
 // Cargar variables de entorno
-dotenv.config();
+dotenv.config({ path: path.join(__dirname, '.env') });
 
 const db = knex({
     client: 'pg',
