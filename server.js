@@ -54,6 +54,15 @@ if (!process.env.VERCEL) {
                     });
                     console.log('🔄 Usuario por defecto "Jufra" actualizado/verificado');
                 }
+
+                // Verificar y agregar columna etapa_formacion si no existe
+                const hasEtapa = await db.schema.hasColumn('usuarios', 'etapa_formacion');
+                if (!hasEtapa) {
+                    await db.schema.alterTable('usuarios', table => {
+                        table.string('etapa_formacion', 50).defaultTo('aspirante');
+                    });
+                    console.log('✅ Columna etapa_formacion agregada a usuarios');
+                }
             } catch (error) {
                 console.error('❌ Error al gestionar usuario por defecto:', error);
             }

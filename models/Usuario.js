@@ -11,7 +11,8 @@ const mappings = {
     expoPushToken: 'expo_push_token',
     resetPasswordCode: 'reset_password_code',
     resetPasswordExpire: 'reset_password_expire',
-    fraternidadId: 'fraternidad_id'
+    fraternidadId: 'fraternidad_id',
+    etapaFormacion: 'etapa_formacion'
 };
 
 module.exports = new BaseModel('usuarios', mappings);
