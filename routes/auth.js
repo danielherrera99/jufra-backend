@@ -458,24 +458,38 @@ router.post('/recuperar-password', async (req, res) => {
                 usuario.resetPasswordCode = undefined;
                 usuario.resetPasswordExpire = undefined;
                 await usuario.save({ validateBeforeSave: false });
-                return res.status(500).json({ success: false, message: 'No se pudo enviar el correo. Verifica la configuración de Brevo.' });
+                return res.status(500).json({ 
+                    success: false, 
+                    message: 'No se pudo enviar el correo vía Brevo. Revisa que BREVO_API_KEY sea válida.',
+                    error: err.message 
+                });
             }
         }
 
-        // Fallback a Nodemailer (Funciona en local, pero Render bloquea el puerto 465)
+        // Fallback a Nodemailer (Gmail)
         const nodemailer = require('nodemailer');
         
+        if (!process.env.EMAIL_PASS) {
+            usuario.resetPasswordCode = undefined;
+            usuario.resetPasswordExpire = undefined;
+            await usuario.save({ validateBeforeSave: false });
+            return res.status(500).json({ 
+                success: false, 
+                message: 'El servidor no tiene configurado un servicio de correo. Agrega BREVO_API_KEY o EMAIL_PASS en las Variables de Entorno de Vercel.' 
+            });
+        }
+
         const transporter = nodemailer.createTransport({
             service: 'gmail',
             auth: {
-                user: process.env.EMAIL_USER || 'jufra.app@gmail.com',
-                pass: process.env.EMAIL_PASS || 'tu-contrasena-de-aplicacion'
+                user: process.env.EMAIL_USER || 'jufrapomalca@gmail.com',
+                pass: process.env.EMAIL_PASS
             }
         });
 
         try {
             await transporter.sendMail({
-                from: `"JUFRA App" <${process.env.EMAIL_USER || 'jufra.app@gmail.com'}>`,
+                from: `"JUFRA App" <${process.env.EMAIL_USER || 'jufrapomalca@gmail.com'}>`,
                 to: usuario.email,
                 subject: 'Código de Recuperación de Contraseña',
                 html: mensaje
@@ -487,7 +501,11 @@ router.post('/recuperar-password', async (req, res) => {
             usuario.resetPasswordCode = undefined;
             usuario.resetPasswordExpire = undefined;
             await usuario.save({ validateBeforeSave: false });
-            return res.status(500).json({ success: false, message: 'No se pudo enviar el correo. Verifica la configuración del servidor.' });
+            return res.status(500).json({ 
+                success: false, 
+                message: 'No se pudo enviar el correo vía Gmail. Verifica EMAIL_USER y EMAIL_PASS en el servidor.',
+                error: err.message
+            });
         }
     } catch (error) {
         console.error(error);
