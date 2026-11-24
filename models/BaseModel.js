@@ -8,6 +8,202 @@ function toUUID(mongoId) {
     return `00000000-${str.substring(0, 4)}-${str.substring(4, 8)}-${str.substring(8, 12)}-${str.substring(12)}`;
 }
 
+// Función de población masiva por lotes (Batch Populate) para evitar problemas de N+1 queries
+async function batchPopulate(models, field, self) {
+    if (!models || models.length === 0) return;
+    const cleanField = typeof field === 'string' ? field.split(' ')[0] : (field?.path || '');
+
+    // 1. Relaciones directas con usuarios (usuario, creadoPor, autor, subidoPor, remitente, destinatario)
+    if (['usuario', 'creadoPor', 'autor', 'subidoPor', 'remitente', 'destinatario'].includes(cleanField)) {
+        const foreignIdKey = self.mappings[cleanField] || cleanField;
+        const ids = [...new Set(models.map(m => {
+            const val = m[foreignIdKey] !== undefined ? m[foreignIdKey] : m[cleanField];
+            if (!val) return null;
+            return typeof val === 'object' ? (val._id || val.id) : val;
+        }).filter(Boolean))];
+
+        const userMap = new Map();
+        if (ids.length > 0) {
+            const uuidList = ids.map(id => toUUID(id)).filter(Boolean);
+            const users = await db('usuarios').whereIn('id', uuidList);
+            for (const u of users) {
+                userMap.set(u.id, {
+                    _id: u.id,
+                    id: u.id,
+                    nombre: u.nombre,
+                    apellido: u.apellido,
+                    foto: u.foto_url,
+                    foto_url: u.foto_url,
+                    cargo: u.cargo,
+                    nombreCompleto: `${u.nombre} ${u.apellido}`
+                });
+            }
+        }
+
+        for (const m of models) {
+            const val = m[foreignIdKey] !== undefined ? m[foreignIdKey] : m[cleanField];
+            const rawId = typeof val === 'object' ? (val?._id || val?.id) : val;
+            const uuid = toUUID(rawId);
+            m[cleanField] = (uuid && userMap.has(uuid)) ? userMap.get(uuid) : null;
+        }
+        return;
+    }
+
+    // 2. Relación registradoPor
+    if (cleanField === 'registradoPor') {
+        const ids = [...new Set(models.map(m => {
+            const val = m.registrado_por !== undefined ? m.registrado_por : m.registradoPor;
+            if (!val) return null;
+            return typeof val === 'object' ? (val._id || val.id) : val;
+        }).filter(Boolean))];
+
+        const userMap = new Map();
+        if (ids.length > 0) {
+            const uuidList = ids.map(id => toUUID(id)).filter(Boolean);
+            const users = await db('usuarios').whereIn('id', uuidList);
+            for (const u of users) {
+                userMap.set(u.id, {
+                    _id: u.id,
+                    id: u.id,
+                    nombre: u.nombre,
+                    apellido: u.apellido,
+                    foto: u.foto_url,
+                    foto_url: u.foto_url,
+                    cargo: u.cargo,
+                    nombreCompleto: `${u.nombre} ${u.apellido}`
+                });
+            }
+        }
+
+        for (const m of models) {
+            const val = m.registrado_por !== undefined ? m.registrado_por : m.registradoPor;
+            const rawId = typeof val === 'object' ? (val?._id || val?.id) : val;
+            const uuid = toUUID(rawId);
+            m[cleanField] = (uuid && userMap.has(uuid)) ? userMap.get(uuid) : null;
+        }
+        return;
+    }
+
+    // 3. Relación asistentes (actas)
+    if (cleanField === 'asistentes') {
+        const ids = models.map(m => toUUID(m.id)).filter(Boolean);
+        if (ids.length === 0) {
+            for (const m of models) m.asistentes = [];
+            return;
+        }
+        const rows = await db('acta_asistentes').whereIn('acta_id', ids);
+        const userIds = [...new Set(rows.map(r => toUUID(r.usuario_id)).filter(Boolean))];
+        const userMap = new Map();
+        if (userIds.length > 0) {
+            const users = await db('usuarios').whereIn('id', userIds);
+            for (const u of users) {
+                userMap.set(u.id, {
+                    _id: u.id,
+                    id: u.id,
+                    nombre: u.nombre,
+                    apellido: u.apellido,
+                    foto: u.foto_url,
+                    cargo: u.cargo,
+                    nombreCompleto: `${u.nombre} ${u.apellido}`
+                });
+            }
+        }
+        const actaMap = new Map();
+        for (const r of rows) {
+            const aId = toUUID(r.acta_id);
+            if (!actaMap.has(aId)) actaMap.set(aId, []);
+            const u = userMap.get(toUUID(r.usuario_id));
+            if (u) actaMap.get(aId).push(u);
+        }
+        for (const m of models) {
+            m.asistentes = actaMap.get(toUUID(m.id)) || [];
+        }
+        return;
+    }
+
+    // 4. Relación participantes (servicios)
+    if (cleanField === 'participantes') {
+        const ids = models.map(m => toUUID(m.id)).filter(Boolean);
+        if (ids.length === 0) {
+            for (const m of models) m.participantes = [];
+            return;
+        }
+        const rows = await db('servicio_participantes').whereIn('servicio_id', ids);
+        const userIds = [...new Set(rows.map(r => toUUID(r.usuario_id)).filter(Boolean))];
+        const userMap = new Map();
+        if (userIds.length > 0) {
+            const users = await db('usuarios').whereIn('id', userIds);
+            for (const u of users) {
+                userMap.set(u.id, {
+                    _id: u.id,
+                    id: u.id,
+                    nombre: u.nombre,
+                    apellido: u.apellido,
+                    foto: u.foto_url,
+                    cargo: u.cargo,
+                    nombreCompleto: `${u.nombre} ${u.apellido}`
+                });
+            }
+        }
+        const servMap = new Map();
+        for (const r of rows) {
+            const sId = toUUID(r.servicio_id);
+            if (!servMap.has(sId)) servMap.set(sId, []);
+            const u = userMap.get(toUUID(r.usuario_id));
+            if (u) servMap.get(sId).push(u);
+        }
+        for (const m of models) {
+            m.participantes = servMap.get(toUUID(m.id)) || [];
+        }
+        return;
+    }
+
+    // 5. Relación acuerdos (actas)
+    if (cleanField === 'acuerdos' || cleanField === 'acuerdos.responsable') {
+        const ids = models.map(m => toUUID(m.id)).filter(Boolean);
+        if (ids.length === 0) {
+            for (const m of models) m.acuerdos = [];
+            return;
+        }
+        const agreements = await db('acuerdos').whereIn('acta_id', ids);
+        const respIds = [...new Set(agreements.map(a => toUUID(a.responsable_id)).filter(Boolean))];
+        const userMap = new Map();
+        if (respIds.length > 0) {
+            const users = await db('usuarios').whereIn('id', respIds);
+            for (const u of users) {
+                userMap.set(u.id, {
+                    _id: u.id,
+                    id: u.id,
+                    nombre: u.nombre,
+                    apellido: u.apellido,
+                    nombreCompleto: `${u.nombre} ${u.apellido}`
+                });
+            }
+        }
+        const agreementMap = new Map();
+        for (const ac of agreements) {
+            const aId = toUUID(ac.acta_id);
+            if (!agreementMap.has(aId)) agreementMap.set(aId, []);
+            const rId = toUUID(ac.responsable_id);
+            if (rId && userMap.has(rId)) {
+                ac.responsable = userMap.get(rId);
+            }
+            agreementMap.get(aId).push(ac);
+        }
+        for (const m of models) {
+            m.acuerdos = agreementMap.get(toUUID(m.id)) || [];
+        }
+        return;
+    }
+
+    // Fallback: Si es un campo custom no mapeado
+    for (const m of models) {
+        if (m && typeof m._singlePopulate === 'function') {
+            await m._singlePopulate(field);
+        }
+    }
+}
+
 class MongooseQueryMock {
     constructor(knexQuery, self, isMany = true) {
         this.knexQuery = knexQuery;
@@ -47,13 +243,15 @@ class MongooseQueryMock {
                 let models = result.map(r => this.self.fromPostgres(r));
                 if (this.memorySort) models.sort(this.memorySort);
                 for (const field of this.populates) {
-                    for (const m of models) if (m) await m.populate(field);
+                    await batchPopulate(models, field, this.self);
                 }
                 return models;
             } else {
                 let model = this.self.fromPostgres(result);
-                for (const field of this.populates) {
-                    if (model) await model.populate(field);
+                if (model) {
+                    for (const field of this.populates) {
+                        await batchPopulate([model], field, this.self);
+                    }
                 }
                 return model;
             }
@@ -171,94 +369,7 @@ class BaseModel {
         };
 
         modelData.populate = async function(field, selectFields) {
-            // Simular populado de relaciones comunes
-            if (field === 'usuario' || field === 'creadoPor' || field === 'autor' || field === 'subidoPor' || field === 'remitente' || field === 'destinatario') {
-                const foreignIdKey = self.mappings[field] || field;
-                const foreignId = this[foreignIdKey];
-                if (foreignId) {
-                    const u = await db('usuarios').where('id', foreignId).first();
-                    if (u) {
-                        this[field] = {
-                            _id: u.id,
-                            id: u.id,
-                            nombre: u.nombre,
-                            apellido: u.apellido,
-                            foto: u.foto_url,
-                            foto_url: u.foto_url,
-                            nombreCompleto: `${u.nombre} ${u.apellido}`
-                        };
-                    } else {
-                        this[field] = null;
-                    }
-                } else {
-                    this[field] = null;
-                }
-            } else if (field === 'registradoPor') {
-                if (this.registrado_por) {
-                    const u = await db('usuarios').where('id', this.registrado_por).first();
-                    if (u) {
-                        this[field] = {
-                            _id: u.id,
-                            id: u.id,
-                            nombre: u.nombre,
-                            apellido: u.apellido
-                        };
-                    } else {
-                        this[field] = null;
-                    }
-                } else {
-                    this[field] = null;
-                }
-            } else if (field === 'asistentes') {
-                const rows = await db('acta_asistentes').where('acta_id', this.id);
-                const userIds = rows.map(r => r.usuario_id);
-                if (userIds.length > 0) {
-                    const users = await db('usuarios').whereIn('id', userIds);
-                    this.asistentes = users.map(u => ({
-                        _id: u.id,
-                        id: u.id,
-                        nombre: u.nombre,
-                        apellido: u.apellido,
-                        foto: u.foto_url,
-                        nombreCompleto: `${u.nombre} ${u.apellido}`
-                    }));
-                } else {
-                    this.asistentes = [];
-                }
-            } else if (field === 'participantes') {
-                const rows = await db('servicio_participantes').where('servicio_id', this.id);
-                const userIds = rows.map(r => r.usuario_id);
-                if (userIds.length > 0) {
-                    const users = await db('usuarios').whereIn('id', userIds);
-                    this.participantes = users.map(u => ({
-                        _id: u.id,
-                        id: u.id,
-                        nombre: u.nombre,
-                        apellido: u.apellido,
-                        foto: u.foto_url,
-                        nombreCompleto: `${u.nombre} ${u.apellido}`
-                    }));
-                } else {
-                    this.participantes = [];
-                }
-            } else if (field === 'acuerdos') {
-                const agreements = await db('acuerdos').where('acta_id', this.id);
-                for (const ac of agreements) {
-                    if (ac.responsable_id) {
-                        const u = await db('usuarios').where('id', ac.responsable_id).first();
-                        if (u) {
-                            ac.responsable = {
-                                _id: u.id,
-                                id: u.id,
-                                nombre: u.nombre,
-                                apellido: u.apellido,
-                                nombreCompleto: `${u.nombre} ${u.apellido}`
-                            };
-                        }
-                    }
-                }
-                this.acuerdos = agreements;
-            }
+            await batchPopulate([this], field, self);
             return this;
         };
 
