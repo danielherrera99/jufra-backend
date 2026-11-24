@@ -100,6 +100,7 @@ app.use('/api/quienes-somos', require('./routes/quienesSomos'));
 app.use('/api/finanzas', require('./routes/finanzas'));
 app.use('/api/campaigns', require('./routes/campaignRoutes'));
 app.use('/api/registros-mascotas', require('./routes/registroMascotas'));
+app.use('/api/inventario', require('./routes/inventario'));
 
 // Ruta de prueba
 app.get('/', (req, res) => {
