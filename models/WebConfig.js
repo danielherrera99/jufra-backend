@@ -24,6 +24,8 @@ const mappings = {
     promoImagenUrl: 'promo_imagen_url',
     promoBotonTexto: 'promo_boton_texto',
     promoBotonLink: 'promo_boton_link',
+    appApkUrl: 'app_apk_url',
+    appVersion: 'app_version',
     updatedAt: 'updated_at'
 };
 
