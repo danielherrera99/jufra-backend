@@ -52,8 +52,8 @@ router.get('/', async (req, res) => {
 
 // @route   PUT /api/ofs-config
 // @desc    Actualizar configuración de la página OFS (Soporta carga de imagen)
-// @access  Private (Admin)
-router.put('/', proteger, autorizarRoles('admin'), upload.single('bannerFile'), async (req, res) => {
+// @access  Private (SuperAdmin / Admin Nacional)
+router.put('/', proteger, autorizarRoles('superadmin', 'admin_nacional'), upload.single('bannerFile'), async (req, res) => {
     try {
         const updateData = { ...req.body };
         

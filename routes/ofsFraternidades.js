@@ -33,9 +33,9 @@ router.get('/:id', async (req, res) => {
 });
 
 // @route   POST /api/ofs-fraternidades
-// @desc    Crear una nueva fraternidad OFS (Admin/Consejo)
+// @desc    Crear una nueva fraternidad OFS (SuperAdmin / Admin Nacional)
 // @access  Private
-router.post('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
+router.post('/', proteger, autorizarRoles('superadmin', 'admin_nacional'), async (req, res) => {
     try {
         const {
             nombre,
@@ -81,9 +81,9 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) 
 });
 
 // @route   PUT /api/ofs-fraternidades/:id
-// @desc    Actualizar una fraternidad OFS (Admin/Consejo)
+// @desc    Actualizar una fraternidad OFS (SuperAdmin / Admin Nacional)
 // @access  Private
-router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
+router.put('/:id', proteger, autorizarRoles('superadmin', 'admin_nacional'), async (req, res) => {
     try {
         const {
             nombre,
@@ -129,9 +129,9 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res
 });
 
 // @route   DELETE /api/ofs-fraternidades/:id
-// @desc    Eliminar una fraternidad OFS (Admin/Consejo)
+// @desc    Eliminar una fraternidad OFS (SuperAdmin / Admin Nacional)
 // @access  Private
-router.delete('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
+router.delete('/:id', proteger, autorizarRoles('superadmin', 'admin_nacional'), async (req, res) => {
     try {
         const fraternidad = await OfsFraternidad.findById(req.params.id);
         if (!fraternidad) {

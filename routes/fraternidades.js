@@ -17,9 +17,9 @@ router.get('/', async (req, res) => {
 });
 
 // @route   POST /api/fraternidades
-// @desc    Crear una nueva fraternidad (Admin/Consejo)
+// @desc    Crear una nueva fraternidad (SuperAdmin / Admin Nacional)
 // @access  Private
-router.post('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
+router.post('/', proteger, autorizarRoles('superadmin', 'admin_nacional'), async (req, res) => {
     try {
         const { nombre, departamento, parroquia, zona, contacto, telefono, enlaceSocial } = req.body;
         
@@ -85,9 +85,9 @@ router.put('/:id', proteger, async (req, res) => {
 });
 
 // @route   DELETE /api/fraternidades/:id
-// @desc    Eliminar una fraternidad (Admin/Consejo)
+// @desc    Eliminar una fraternidad (SuperAdmin / Admin Nacional)
 // @access  Private
-router.delete('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
+router.delete('/:id', proteger, autorizarRoles('superadmin', 'admin_nacional'), async (req, res) => {
     try {
         const fraternidad = await Fraternidad.findById(req.params.id);
         if (!fraternidad) {
