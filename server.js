@@ -113,11 +113,11 @@ app.get('/', (req, res) => {
 
 // Manejo de errores global
 app.use((err, req, res, next) => {
-    console.error(err.stack);
+    console.error('Error no controlado en servidor:', err.stack || err);
     res.status(500).json({
         success: false,
         message: 'Error interno del servidor',
-        error: process.env.NODE_ENV === 'development' ? err.message : {}
+        error: err.message || String(err)
     });
 });
 

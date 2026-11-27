@@ -182,12 +182,41 @@ router.post('/login', [
     body('password').notEmpty().withMessage('La contraseña es requerida')
 ], async (req, res) => {
     try {
-        const { username, password } = req.body;
+        const errors = validationResult(req);
+        if (!errors.isEmpty()) {
+            return res.status(400).json({
+                success: false,
+                message: errors.array()[0].msg
+            });
+        }
+
+        let { username, password } = req.body;
+        if (!username || !password) {
+            return res.status(400).json({
+                success: false,
+                message: 'Usuario y contraseña son requeridos'
+            });
+        }
+
+        username = String(username).trim();
+        password = String(password);
 
         // Verificar si el usuario existe (sensible a mayúsculas/minúsculas)
         const isEmail = username.includes('@');
-        const query = isEmail ? { email: username.toLowerCase() } : { username };
-        const usuario = await Usuario.findOne(query);
+        let usuario = null;
+        if (isEmail) {
+            usuario = await Usuario.findOne({ email: username.toLowerCase() });
+        } else {
+            usuario = await Usuario.findOne({ username });
+            if (!usuario) {
+                // Fallback case-insensitive
+                const db = require('../db');
+                const rawUser = await db('usuarios').whereRaw('LOWER(username) = ?', [username.toLowerCase()]).first();
+                if (rawUser) {
+                    usuario = Usuario.fromPostgres(rawUser);
+                }
+            }
+        }
 
         if (!usuario) {
             return res.status(401).json({

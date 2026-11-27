@@ -375,9 +375,15 @@ class BaseModel {
 
         if (this.tableName === 'usuarios') {
             const bcrypt = require('bcryptjs');
-            modelData.nombreCompleto = `${row.nombre} ${row.apellido}`;
+            modelData.nombreCompleto = `${row.nombre || ''} ${row.apellido || ''}`.trim();
             modelData.compararPassword = async function(passwordIngresado) {
-                return await bcrypt.compare(passwordIngresado, this.password);
+                if (!passwordIngresado || !this.password) return false;
+                try {
+                    return await bcrypt.compare(String(passwordIngresado), String(this.password));
+                } catch (err) {
+                    console.error('Error al comparar contraseñas en BaseModel:', err);
+                    return false;
+                }
             };
         }
 

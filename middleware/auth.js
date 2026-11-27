@@ -70,7 +70,9 @@ exports.autorizarRoles = (...roles) => {
 
 // Generar token JWT
 exports.generarToken = (id) => {
-    return jwt.sign({ id }, process.env.JWT_SECRET, {
-        expiresIn: process.env.JWT_EXPIRE
+    const secret = process.env.JWT_SECRET || 'jufra_secret_key_2024_franciscanos_tau';
+    const expire = process.env.JWT_EXPIRE || '30d';
+    return jwt.sign({ id }, secret, {
+        expiresIn: expire
     });
 };
