@@ -3,6 +3,11 @@ const router = express.Router();
 const Evento = require('../models/Evento');
 const Usuario = require('../models/Usuario');
 const { proteger, autorizarRoles } = require('../middleware/auth');
+const {
+    buildMultiTenantFilter,
+    resolveTargetFraternidadId,
+    parseEsNacional
+} = require('../utils/multiTenantFilter');
 const { enviarNotificacionGrupal } = require('../utils/expoPush');
 
 const multer = require('multer');
@@ -71,19 +76,9 @@ router.get('/', proteger, async (req, res) => {
             }
         }
 
-        const esSuperAdmin = req.usuario.rol === 'superadmin' || req.usuario.rol === 'admin_nacional';
-        if (esSuperAdmin) {
-            if (req.query.fraternidadId) {
-                query.fraternidadId = req.query.fraternidadId;
-            }
-        } else {
-            const fratId = req.usuario.fraternidadId || req.usuario.fraternidad_id;
-            if (fratId) {
-                query.fraternidadId = fratId;
-            }
-        }
+        const filtroFinal = buildMultiTenantFilter(req, query, { allowNational: true });
 
-        const eventos = await Evento.find(query)
+        const eventos = await Evento.find(filtroFinal)
             .sort(sortOption)
             .populate('creadoPor', 'nombre apellido');
 
@@ -142,10 +137,7 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo', 'coordinador'), up
             publicar_web = false;
         }
 
-        const esSuperAdmin = req.usuario.rol === 'superadmin' || req.usuario.rol === 'admin_nacional';
-        const targetFraternidadId = (esSuperAdmin && req.body.fraternidadId)
-            ? req.body.fraternidadId
-            : (req.usuario.fraternidadId || req.usuario.fraternidad_id);
+        const targetFraternidadId = resolveTargetFraternidadId(req);
 
         const eventoData = {
             titulo,
@@ -158,7 +150,8 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo', 'coordinador'), up
             creadoPor: req.usuario._id,
             imagenUrl,
             publicar_web,
-            fraternidadId: targetFraternidadId
+            fraternidadId: targetFraternidadId,
+            esNacional: parseEsNacional(req)
         };
 
         const hasUbicacion = lat !== undefined && lat !== null && lat !== '' && 

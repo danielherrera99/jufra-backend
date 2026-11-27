@@ -3,25 +3,31 @@ const router = express.Router();
 const Servicio = require('../models/Servicio');
 const db = require('../db');
 const { proteger, autorizarRoles } = require('../middleware/auth');
+const {
+    buildMultiTenantFilter,
+    resolveTargetFraternidadId,
+    parseEsNacional,
+    canModifyItem
+} = require('../utils/multiTenantFilter');
 const multer = require('multer');
 const path = require('path');
 const cloudinary = require('cloudinary').v2;
 const { CloudinaryStorage } = require('multer-storage-cloudinary');
 
 cloudinary.config({
-  cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_API_KEY,
-  api_secret: process.env.CLOUDINARY_API_SECRET
+    cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
+    api_key: process.env.CLOUDINARY_API_KEY,
+    api_secret: process.env.CLOUDINARY_API_SECRET
 });
 
 // Configurar multer para subida de imágenes a Cloudinary
 const storage = new CloudinaryStorage({
-  cloudinary: cloudinary,
-  params: {
-    folder: 'jufra_servicios',
-    allowed_formats: ['jpg', 'png', 'jpeg'],
-    public_id: (req, file) => `servicio-${Date.now()}`,
-  },
+    cloudinary: cloudinary,
+    params: {
+        folder: 'jufra_servicios',
+        allowed_formats: ['jpg', 'png', 'jpeg'],
+        public_id: (req, file) => `servicio-${Date.now()}`,
+    },
 });
 
 const fileFilter = (req, file, cb) => {
@@ -43,7 +49,8 @@ const upload = multer({
 // @access  Private
 router.get('/', proteger, async (req, res) => {
     try {
-        const servicios = await Servicio.find()
+        const filtro = buildMultiTenantFilter(req, {}, { allowNational: true });
+        const servicios = await Servicio.find(filtro)
             .sort({ fecha: 1 })
             .populate('participantes', 'nombre apellido foto');
 
@@ -80,7 +87,9 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('im
             lugar,
             cupoMaximo,
             imagen,
-            creadoPor: req.usuario._id
+            creadoPor: req.usuario._id,
+            fraternidadId: resolveTargetFraternidadId(req),
+            esNacional: parseEsNacional(req)
         };
 
         if (lat && lng) {
@@ -127,7 +136,7 @@ router.put('/:id/participar', proteger, async (req, res) => {
             await db('servicio_participantes')
                 .where({ servicio_id: req.params.id, usuario_id: req.usuario._id })
                 .del();
-                
+
             const servicioDoc = await Servicio.findById(req.params.id).populate('participantes');
             return res.status(200).json({
                 success: true,
@@ -182,6 +191,9 @@ router.delete('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, 
 
         if (!servicio) {
             return res.status(404).json({ success: false, message: 'Servicio no encontrado' });
+        }
+        if (!canModifyItem(req, servicio)) {
+            return res.status(403).json({ success: false, message: 'No tienes permiso para eliminar este servicio' });
         }
 
         await servicio.deleteOne();

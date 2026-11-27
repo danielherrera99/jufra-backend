@@ -2,6 +2,12 @@ const express = require('express');
 const router = express.Router();
 const Canto = require('../models/Canto');
 const { proteger, autorizarRoles } = require('../middleware/auth');
+const {
+    buildMultiTenantFilter,
+    resolveTargetFraternidadId,
+    parseEsNacional,
+    canModifyItem
+} = require('../utils/multiTenantFilter');
 const multer = require('multer');
 const path = require('path');
 const { uploadFileToDrive } = require('../utils/drive');
@@ -29,7 +35,8 @@ const upload = multer({
 // @access  Private
 router.get('/', proteger, async (req, res) => {
     try {
-        const cantos = await Canto.find()
+        const filtro = buildMultiTenantFilter(req, {}, { allowNational: true });
+        const cantos = await Canto.find(filtro)
             .sort({ titulo: 1 });
 
         res.status(200).json({
@@ -69,7 +76,9 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo', 'animador', 'coord
             autor,
             creadoPor: req.usuario._id,
             archivoUrl,
-            archivoNombre
+            archivoNombre,
+            fraternidadId: resolveTargetFraternidadId(req),
+            esNacional: parseEsNacional(req)
         });
 
         res.status(201).json({
@@ -115,7 +124,18 @@ router.get('/:id', proteger, async (req, res) => {
 // @access  Private (Admin/Consejo/Formador/Animador)
 router.put('/:id', proteger, autorizarRoles('admin', 'consejo', 'animador', 'coordinador'), upload.single('archivo'), async (req, res) => {
     try {
+        const existente = await Canto.findById(req.params.id);
+        if (!existente) {
+            return res.status(404).json({ success: false, message: 'Canto no encontrado' });
+        }
+        if (!canModifyItem(req, existente)) {
+            return res.status(403).json({ success: false, message: 'No tienes permiso para editar este canto' });
+        }
+
         const datosActualizar = { ...req.body };
+        if (req.body.esNacional !== undefined) {
+            datosActualizar.esNacional = parseEsNacional(req);
+        }
 
         if (req.file) {
             const driveFile = await uploadFileToDrive(req.file.buffer, req.file.originalname, req.file.mimetype, 'cantos');
@@ -151,11 +171,15 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo', 'animador', 'coo
 // @access  Private (Admin/Consejo/Formador/Animador)
 router.delete('/:id', proteger, autorizarRoles('admin', 'consejo', 'animador', 'coordinador'), async (req, res) => {
     try {
-        const canto = await Canto.findByIdAndDelete(req.params.id);
-
-        if (!canto) {
+        const existente = await Canto.findById(req.params.id);
+        if (!existente) {
             return res.status(404).json({ success: false, message: 'Canto no encontrado' });
         }
+        if (!canModifyItem(req, existente)) {
+            return res.status(403).json({ success: false, message: 'No tienes permiso para eliminar este canto' });
+        }
+
+        await Canto.findByIdAndDelete(req.params.id);
 
         res.status(200).json({
             success: true,

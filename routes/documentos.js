@@ -2,13 +2,20 @@ const express = require('express');
 const router = express.Router();
 const Documento = require('../models/Documento');
 const { proteger, autorizarRoles } = require('../middleware/auth');
+const {
+    buildMultiTenantFilter,
+    resolveTargetFraternidadId,
+    parseEsNacional,
+    canModifyItem
+} = require('../utils/multiTenantFilter');
 
 // @route   GET /api/documentos
 // @desc    Obtener todos los documentos
 // @access  Private
 router.get('/', proteger, async (req, res) => {
     try {
-        const documentos = await Documento.find()
+        const filtro = buildMultiTenantFilter(req, {}, { allowNational: true });
+        const documentos = await Documento.find(filtro)
             .sort({ titulo: 1 });
 
         res.status(200).json({
@@ -67,7 +74,9 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('ar
             descripcion,
             tipo,
             contenido,
-            creadoPor: req.usuario._id
+            creadoPor: req.usuario._id,
+            fraternidadId: resolveTargetFraternidadId(req),
+            esNacional: parseEsNacional(req)
         };
 
         if (req.file) {
@@ -122,7 +131,18 @@ router.get('/:id', proteger, async (req, res) => {
 // @access  Private (Admin/Consejo/Formador)
 router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), upload.single('archivo'), async (req, res) => {
     try {
+        const existente = await Documento.findById(req.params.id);
+        if (!existente) {
+            return res.status(404).json({ success: false, message: 'Documento no encontrado' });
+        }
+        if (!canModifyItem(req, existente)) {
+            return res.status(403).json({ success: false, message: 'No tienes permiso para editar este documento' });
+        }
+
         const datosActualizar = { ...req.body };
+        if (req.body.esNacional !== undefined) {
+            datosActualizar.esNacional = parseEsNacional(req);
+        }
 
         if (req.file) {
             const driveFile = await uploadFileToDrive(req.file.buffer, req.file.originalname, req.file.mimetype, 'documentos');
@@ -158,11 +178,15 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), upload.single('
 // @access  Private (Admin/Consejo/Formador)
 router.delete('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
     try {
-        const documento = await Documento.findByIdAndDelete(req.params.id);
-
-        if (!documento) {
+        const existente = await Documento.findById(req.params.id);
+        if (!existente) {
             return res.status(404).json({ success: false, message: 'Documento no encontrado' });
         }
+        if (!canModifyItem(req, existente)) {
+            return res.status(403).json({ success: false, message: 'No tienes permiso para eliminar este documento' });
+        }
+
+        await Documento.findByIdAndDelete(req.params.id);
 
         res.status(200).json({
             success: true,

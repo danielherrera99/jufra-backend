@@ -2,6 +2,12 @@ const express = require('express');
 const router = express.Router();
 const Formacion = require('../models/Formacion');
 const { proteger, autorizarRoles } = require('../middleware/auth');
+const {
+    buildMultiTenantFilter,
+    resolveTargetFraternidadId,
+    parseEsNacional,
+    canModifyItem
+} = require('../utils/multiTenantFilter');
 
 const multer = require('multer');
 const path = require('path');
@@ -30,7 +36,8 @@ const upload = multer({
 // @access  Private
 router.get('/', proteger, async (req, res) => {
     try {
-        const temas = await Formacion.find()
+        const filtro = buildMultiTenantFilter(req, {}, { allowNational: true });
+        const temas = await Formacion.find(filtro)
             .populate('autor', 'nombre apellido')
             .sort({ fecha: -1 });
 
@@ -71,7 +78,9 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('ar
             etiquetas,
             autor: req.usuario._id,
             archivoUrl,
-            archivoNombre
+            archivoNombre,
+            fraternidadId: resolveTargetFraternidadId(req),
+            esNacional: parseEsNacional(req)
         });
 
         res.status(201).json({
@@ -109,7 +118,18 @@ router.get('/:id', proteger, async (req, res) => {
 // @access  Private (Admin/Consejo/Formador)
 router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), upload.single('archivo'), async (req, res) => {
     try {
+        const existente = await Formacion.findById(req.params.id);
+        if (!existente) {
+            return res.status(404).json({ success: false, message: 'Tema no encontrado' });
+        }
+        if (!canModifyItem(req, existente)) {
+            return res.status(403).json({ success: false, message: 'No tienes permiso para editar este tema' });
+        }
+
         const datosActualizar = { ...req.body };
+        if (req.body.esNacional !== undefined) {
+            datosActualizar.esNacional = parseEsNacional(req);
+        }
 
         if (req.file) {
             const driveFile = await uploadFileToDrive(req.file.buffer, req.file.originalname, req.file.mimetype, 'formacion');
@@ -145,11 +165,15 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), upload.single('
 // @access  Private (Admin/Consejo/Formador)
 router.delete('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
     try {
-        const tema = await Formacion.findByIdAndDelete(req.params.id);
-
-        if (!tema) {
+        const existente = await Formacion.findById(req.params.id);
+        if (!existente) {
             return res.status(404).json({ success: false, message: 'Tema no encontrado' });
         }
+        if (!canModifyItem(req, existente)) {
+            return res.status(403).json({ success: false, message: 'No tienes permiso para eliminar este tema' });
+        }
+
+        await Formacion.findByIdAndDelete(req.params.id);
 
         res.status(200).json({
             success: true,

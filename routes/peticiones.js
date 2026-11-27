@@ -2,13 +2,21 @@ const express = require('express');
 const router = express.Router();
 const Peticion = require('../models/Peticion');
 const { proteger } = require('../middleware/auth');
+const {
+    buildMultiTenantFilter,
+    resolveTargetFraternidadId,
+    parseEsNacional,
+    canModifyItem,
+    isSuperAdmin
+} = require('../utils/multiTenantFilter');
 
 // @route   GET /api/peticiones
 // @desc    Obtener todas las peticiones recientes
 // @access  Private
 router.get('/', proteger, async (req, res) => {
     try {
-        const peticiones = await Peticion.find()
+        const filtro = buildMultiTenantFilter(req, {}, { allowNational: true });
+        const peticiones = await Peticion.find(filtro)
             .sort({ createdAt: -1 })
             .populate('autor', 'nombre apellido foto')
             .limit(50); // Limitar a las últimas 50
@@ -37,7 +45,9 @@ router.post('/', proteger, async (req, res) => {
         const peticion = await Peticion.create({
             contenido,
             anonimo,
-            autor: req.usuario._id
+            autor: req.usuario._id,
+            fraternidadId: resolveTargetFraternidadId(req),
+            esNacional: parseEsNacional(req)
         });
 
         // Poblar autor para devolver respuesta completa
@@ -109,13 +119,19 @@ router.put('/:id', proteger, async (req, res) => {
             return res.status(404).json({ success: false, message: 'Petición no encontrada' });
         }
 
-        // Verificar si es el autor o admin/consejo
-        if (peticion.autor.toString() !== req.usuario._id.toString() &&
-            !['admin', 'consejo'].includes(req.usuario.rol)) {
+        // Verificar si es el autor o admin/consejo de la misma fraternidad (o superadmin)
+        const esAutor = String(peticion.autor) === String(req.usuario._id);
+        const esAdminLocal = ['admin', 'consejo'].includes(req.usuario.rol) && canModifyItem(req, peticion);
+        if (!esAutor && !esAdminLocal && !isSuperAdmin(req.usuario)) {
             return res.status(401).json({ success: false, message: 'No autorizado' });
         }
 
-        peticion = await Peticion.findByIdAndUpdate(req.params.id, req.body, {
+        const datosActualizar = { ...req.body };
+        if (req.body.esNacional !== undefined) {
+            datosActualizar.esNacional = parseEsNacional(req);
+        }
+
+        peticion = await Peticion.findByIdAndUpdate(req.params.id, datosActualizar, {
             new: true,
             runValidators: true
         });
@@ -145,9 +161,10 @@ router.delete('/:id', proteger, async (req, res) => {
             return res.status(404).json({ success: false, message: 'Petición no encontrada' });
         }
 
-        // Verificar si es el autor o admin/consejo
-        if (peticion.autor.toString() !== req.usuario._id.toString() &&
-            !['admin', 'consejo'].includes(req.usuario.rol)) {
+        // Verificar si es el autor o admin/consejo de la misma fraternidad (o superadmin)
+        const esAutor = String(peticion.autor) === String(req.usuario._id);
+        const esAdminLocal = ['admin', 'consejo'].includes(req.usuario.rol) && canModifyItem(req, peticion);
+        if (!esAutor && !esAdminLocal && !isSuperAdmin(req.usuario)) {
             return res.status(401).json({ success: false, message: 'No autorizado' });
         }
 

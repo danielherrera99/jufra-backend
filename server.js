@@ -18,6 +18,13 @@ app.use('/uploads', express.static('uploads'));
 // Conectar a Supabase PostgreSQL y verificar usuario por defecto
 const db = require('./db');
 const bcrypt = require('bcryptjs');
+const ensureMultiTenantSchema = require('./utils/ensureMultiTenantSchema');
+
+// Garantizar columnas multi-tenant en frío (ejecuta una sola vez por instancia)
+app.use(async (req, res, next) => {
+    await ensureMultiTenantSchema();
+    next();
+});
 
 if (!process.env.VERCEL) {
     db.raw('SELECT 1')

@@ -35,6 +35,7 @@ async function batchPopulate(models, field, self) {
                     foto: u.foto_url,
                     foto_url: u.foto_url,
                     cargo: u.cargo,
+                    fraternidadId: u.fraternidad_id,
                     nombreCompleto: `${u.nombre} ${u.apellido}`
                 });
             }
@@ -70,6 +71,7 @@ async function batchPopulate(models, field, self) {
                     foto: u.foto_url,
                     foto_url: u.foto_url,
                     cargo: u.cargo,
+                    fraternidadId: u.fraternidad_id,
                     nombreCompleto: `${u.nombre} ${u.apellido}`
                 });
             }
@@ -104,6 +106,7 @@ async function batchPopulate(models, field, self) {
                     apellido: u.apellido,
                     foto: u.foto_url,
                     cargo: u.cargo,
+                    fraternidadId: u.fraternidad_id,
                     nombreCompleto: `${u.nombre} ${u.apellido}`
                 });
             }
@@ -141,6 +144,7 @@ async function batchPopulate(models, field, self) {
                     apellido: u.apellido,
                     foto: u.foto_url,
                     cargo: u.cargo,
+                    fraternidadId: u.fraternidad_id,
                     nombreCompleto: `${u.nombre} ${u.apellido}`
                 });
             }

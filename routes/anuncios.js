@@ -3,6 +3,11 @@ const router = express.Router();
 const Anuncio = require('../models/Anuncio');
 const Usuario = require('../models/Usuario');
 const { proteger, autorizarRoles } = require('../middleware/auth');
+const {
+    buildMultiTenantFilter,
+    resolveTargetFraternidadId,
+    parseEsNacional
+} = require('../utils/multiTenantFilter');
 const { enviarNotificacionGrupal } = require('../utils/expoPush');
 
 const multer = require('multer');
@@ -55,10 +60,7 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('im
             imagen = req.body.imagen;
         }
 
-        const esSuperAdmin = req.usuario.rol === 'superadmin' || req.usuario.rol === 'admin_nacional';
-        const targetFraternidadId = (esSuperAdmin && req.body.fraternidadId)
-            ? req.body.fraternidadId
-            : (req.usuario.fraternidadId || req.usuario.fraternidad_id);
+        const targetFraternidadId = resolveTargetFraternidadId(req);
 
         const anuncioData = {
             titulo,
@@ -70,7 +72,8 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('im
             destacado,
             destinatarios,
             autor: req.usuario._id,
-            fraternidadId: targetFraternidadId
+            fraternidadId: targetFraternidadId,
+            esNacional: parseEsNacional(req)
         };
 
         const hasUbicacion = lat !== undefined && lat !== null && lat !== '' && 
@@ -153,20 +156,10 @@ router.get('/', proteger, async (req, res) => {
             { fechaExpiracion: { $gt: new Date() } }
         ];
 
-        // Filtro Multi-Tenant: SuperAdmin ve todo o filtra por ?fraternidadId=..., locales ven su fraternidad
-        const esSuperAdmin = req.usuario.rol === 'superadmin' || req.usuario.rol === 'admin_nacional';
-        if (esSuperAdmin) {
-            if (req.query.fraternidadId) {
-                filtro.fraternidadId = req.query.fraternidadId;
-            }
-        } else {
-            const fratId = req.usuario.fraternidadId || req.usuario.fraternidad_id;
-            if (fratId) {
-                filtro.fraternidadId = fratId;
-            }
-        }
+        // Filtro Multi-Tenant: SuperAdmin ve todo o filtra por ?fraternidadId=..., locales ven su fraternidad + nacionales
+        const filtroFinal = buildMultiTenantFilter(req, filtro, { allowNational: true });
 
-        const anuncios = await Anuncio.find(filtro)
+        const anuncios = await Anuncio.find(filtroFinal)
             .populate('autor', 'nombre apellido cargo foto')
             .sort({ destacado: -1, prioridad: -1, fechaPublicacion: -1 });
 

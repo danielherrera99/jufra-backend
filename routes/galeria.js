@@ -2,6 +2,12 @@ const express = require('express');
 const router = express.Router();
 const Galeria = require('../models/Galeria');
 const { proteger, autorizarRoles } = require('../middleware/auth');
+const {
+    buildMultiTenantFilter,
+    resolveTargetFraternidadId,
+    parseEsNacional,
+    canModifyItem
+} = require('../utils/multiTenantFilter');
 const multer = require('multer');
 const path = require('path');
 const cloudinary = require('cloudinary').v2;
@@ -42,7 +48,8 @@ const upload = multer({
 // @access  Public
 router.get('/', async (req, res) => {
     try {
-        const galeria = await Galeria.find()
+        const filtro = buildMultiTenantFilter(req, {}, { allowNational: true });
+        const galeria = await Galeria.find(filtro)
             .sort({ fecha: -1 })
             .populate('subidoPor', 'nombre apellido');
 
@@ -83,7 +90,9 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), upload.single('ar
             categoria: categoria || 'general',
             archivoUrl,
             tipoArchivo,
-            subidoPor: req.usuario._id
+            subidoPor: req.usuario._id,
+            fraternidadId: resolveTargetFraternidadId(req),
+            esNacional: parseEsNacional(req)
         });
 
         res.status(201).json({
@@ -109,6 +118,9 @@ router.delete('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, 
 
         if (!item) {
             return res.status(404).json({ success: false, message: 'Item no encontrado' });
+        }
+        if (!canModifyItem(req, item)) {
+            return res.status(403).json({ success: false, message: 'No tienes permiso para eliminar este archivo' });
         }
 
         // Eliminar archivo físico (opcional, pero recomendado)

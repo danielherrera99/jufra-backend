@@ -3,6 +3,7 @@ const router = express.Router();
 const Mensaje = require('../models/Mensaje');
 const Usuario = require('../models/Usuario');
 const { proteger, autorizarRoles } = require('../middleware/auth');
+const { isSuperAdmin, getUserFraternidadId } = require('../utils/multiTenantFilter');
 
 // @route   GET /api/mensajes/conversaciones
 // @desc    Obtener lista de usuarios con los que tengo conversaciones
@@ -90,7 +91,8 @@ router.post('/', proteger, async (req, res) => {
         const mensaje = await Mensaje.create({
             remitente: req.usuario._id,
             destinatario: destinatarioId,
-            contenido
+            contenido,
+            fraternidadId: getUserFraternidadId(req.usuario)
         });
 
         const mensajePoblado = await Mensaje.findById(mensaje._id)
@@ -109,6 +111,12 @@ router.post('/', proteger, async (req, res) => {
 // @access  Private (Admin/Consejo)
 router.get('/admin/todas', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
     try {
+        const esSuper = isSuperAdmin(req.usuario);
+        const qFrat = req.query?.fraternidadId;
+        const targetFratId = esSuper
+            ? (qFrat && qFrat !== 'all-peru' && qFrat !== 'all' ? qFrat : null)
+            : getUserFraternidadId(req.usuario);
+
         const mensajes = await Mensaje.find()
             .sort({ createdAt: -1 })
             .populate('remitente', 'nombre apellido foto cargo')
@@ -118,6 +126,18 @@ router.get('/admin/todas', proteger, autorizarRoles('admin', 'consejo'), async (
 
         for (const msg of mensajes) {
             if (!msg.remitente || !msg.destinatario) continue;
+
+            if (targetFratId) {
+                const remFrat = msg.remitente.fraternidadId;
+                const destFrat = msg.destinatario.fraternidadId;
+                const msgFrat = msg.fraternidadId || msg.fraternidad_id;
+                const pertenece =
+                    String(remFrat) === String(targetFratId) ||
+                    String(destFrat) === String(targetFratId) ||
+                    String(msgFrat) === String(targetFratId);
+                if (!pertenece) continue;
+            }
+
             const ids = [msg.remitente._id.toString(), msg.destinatario._id.toString()].sort();
             const key = ids.join('-');
 
