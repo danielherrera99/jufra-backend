@@ -45,10 +45,19 @@ router.post('/', proteger, autorizarRoles('admin', 'consejo'), async (req, res) 
 });
 
 // @route   PUT /api/fraternidades/:id
-// @desc    Actualizar una fraternidad (Admin/Consejo)
+// @desc    Actualizar una fraternidad (Admin/Consejo o Coordinador de esa Fraternidad)
 // @access  Private
-router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
+router.put('/:id', proteger, async (req, res) => {
     try {
+        const userRole = (req.user?.rol || '').toLowerCase();
+        const userFraternidad = req.user?.fraternidad_id || req.user?.fraternidadId;
+        const isGlobalAdmin = ['admin', 'superadmin', 'consejo', 'admin_nacional'].includes(userRole);
+        const isLocalCoord = userFraternidad && String(userFraternidad) === String(req.params.id);
+
+        if (!isGlobalAdmin && !isLocalCoord) {
+            return res.status(403).json({ success: false, message: 'No tienes permisos para modificar los datos de esta fraternidad.' });
+        }
+
         const { nombre, departamento, parroquia, zona, contacto, telefono, enlaceSocial } = req.body;
         
         let fraternidad = await Fraternidad.findById(req.params.id);
@@ -56,16 +65,19 @@ router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res
             return res.status(404).json({ success: false, message: 'Fraternidad no encontrada' });
         }
 
-        if (nombre) fraternidad.nombre = nombre;
-        if (departamento) fraternidad.departamento = departamento;
+        // Solo admin nacional / global puede cambiar nombre, departamento o zona
+        if (nombre && isGlobalAdmin) fraternidad.nombre = nombre;
+        if (departamento && isGlobalAdmin) fraternidad.departamento = departamento;
+        if (zona && isGlobalAdmin) fraternidad.zona = zona;
+
+        // Coordinador local o admin pueden actualizar sede, contacto, teléfono y redes
         fraternidad.parroquia = parroquia !== undefined ? parroquia : fraternidad.parroquia;
-        if (zona) fraternidad.zona = zona;
         fraternidad.contacto = contacto !== undefined ? contacto : fraternidad.contacto;
         fraternidad.telefono = telefono !== undefined ? telefono : fraternidad.telefono;
         fraternidad.enlaceSocial = enlaceSocial !== undefined ? enlaceSocial : fraternidad.enlaceSocial;
 
         await fraternidad.save();
-        res.json({ success: true, data: fraternidad });
+        res.json({ success: true, data: fraternidad, message: '¡Datos de la fraternidad actualizados con éxito!' });
     } catch (error) {
         console.error(error);
         res.status(500).json({ success: false, message: 'Error al actualizar la fraternidad' });
