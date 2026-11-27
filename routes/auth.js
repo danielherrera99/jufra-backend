@@ -415,15 +415,27 @@ router.put('/perfil', require('../middleware/auth').proteger, async (req, res) =
 // @access  Public
 router.post('/recuperar-password', async (req, res) => {
     try {
-        const { usernameOrEmail } = req.body;
+        let { usernameOrEmail } = req.body;
         if (!usernameOrEmail) {
             return res.status(400).json({ success: false, message: 'Por favor, proporciona un usuario o correo.' });
         }
 
-        // Buscar por email o username
-        const usuario = await Usuario.findOne({
-            $or: [{ email: usernameOrEmail.toLowerCase() }, { username: usernameOrEmail }]
-        });
+        const query = usernameOrEmail.toString().trim();
+        const isEmail = query.includes('@');
+        let usuario = null;
+
+        if (isEmail) {
+            usuario = await Usuario.findOne({ email: query.toLowerCase() });
+        } else {
+            usuario = await Usuario.findOne({ username: query });
+            if (!usuario) {
+                const db = require('../db');
+                const rawUser = await db('usuarios').whereRaw('LOWER(username) = ?', [query.toLowerCase()]).first();
+                if (rawUser) {
+                    usuario = Usuario.fromPostgres(rawUser);
+                }
+            }
+        }
 
         if (!usuario) {
             return res.status(404).json({ success: false, message: 'No existe una cuenta con esa información.' });
@@ -445,20 +457,104 @@ router.post('/recuperar-password', async (req, res) => {
 
         await usuario.save({ validateBeforeSave: false });
 
-        const mensaje = `
-            <h2>Recuperación de Contraseña - JUFRA</h2>
-            <p>Hola ${usuario.nombre},</p>
-            <p>Has solicitado restablecer tu contraseña. Utiliza el siguiente código de 6 dígitos en la aplicación:</p>
-            <h1 style="background: #f4f4f4; padding: 10px; text-align: center; letter-spacing: 5px; color: #624b2b;">${resetCode}</h1>
-            <p>Este código expira en 15 minutos.</p>
-            <p>Si no fuiste tú, puedes ignorar este correo.</p>
+        const mensajeHtml = `
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Código de Recuperación - JUFRA</title>
+</head>
+<body style="margin: 0; padding: 0; background-color: #f8fafc; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif; color: #1e293b;">
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="background-color: #f8fafc; padding: 30px 15px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width: 520px; background-color: #ffffff; border-radius: 16px; overflow: hidden; box-shadow: 0 4px 20px rgba(0, 0, 0, 0.06); border: 1px solid #f1f5f9;">
+          <tr>
+            <td style="background: linear-gradient(135deg, #451a03 0%, #78350f 50%, #9a3412 100%); padding: 32px 24px; text-align: center;">
+              <div style="display: inline-block; width: 44px; height: 44px; line-height: 44px; background: rgba(255, 255, 255, 0.15); border-radius: 50%; font-size: 24px; color: #fef3c7; font-weight: bold; margin-bottom: 8px;">
+                &#10013;
+              </div>
+              <h1 style="margin: 0; color: #ffffff; font-size: 22px; font-weight: 700; letter-spacing: 0.5px;">JUFRA Pomalca</h1>
+              <p style="margin: 4px 0 0; color: #fed7aa; font-size: 13px; font-weight: 500; text-transform: uppercase; letter-spacing: 1px;">Juventud Franciscana del Perú</p>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding: 32px 28px;">
+              <h2 style="margin: 0 0 12px; color: #0f172a; font-size: 19px; font-weight: 700;">Restablecer tu Contraseña</h2>
+              <p style="margin: 0 0 16px; color: #475569; font-size: 14.5px; line-height: 1.6;">
+                ¡Paz y Bien, hermano(a) <strong>${usuario.nombre || 'Hermano'}</strong>!
+              </p>
+              <p style="margin: 0 0 24px; color: #475569; font-size: 14.5px; line-height: 1.6;">
+                Has solicitado restablecer el acceso a tu cuenta fraterna. Utiliza el siguiente código de verificación de 6 dígitos para continuar:
+              </p>
+
+              <div style="background: #fff7ed; border: 2px dashed #ea580c; border-radius: 12px; padding: 20px 16px; text-align: center; margin: 0 0 24px;">
+                <span style="font-size: 11.5px; font-weight: 700; color: #9a3412; text-transform: uppercase; letter-spacing: 1.5px; display: block; margin-bottom: 8px;">Tu Código de Verificación</span>
+                <span style="font-family: 'Courier New', Courier, monospace; font-size: 34px; font-weight: 800; color: #7c2d12; letter-spacing: 8px; display: inline-block;">${resetCode}</span>
+              </div>
+
+              <div style="background: #f8fafc; border-left: 4px solid #ea580c; padding: 12px 16px; border-radius: 4px 8px 8px 4px; margin-bottom: 24px;">
+                <p style="margin: 0; font-size: 13px; color: #64748b; line-height: 1.5;">
+                  ⏳ <strong>Importante:</strong> Este código expira en <strong>15 minutos</strong> y es de un solo uso.
+                </p>
+              </div>
+
+              <p style="margin: 0; font-size: 13px; color: #94a3b8; line-height: 1.5;">
+                Si tú no solicitaste este cambio, puedes ignorar este mensaje de forma segura. Tu cuenta y contraseña actual permanecen protegidas.
+              </p>
+            </td>
+          </tr>
+          <tr>
+            <td style="background-color: #f8fafc; padding: 20px 24px; text-align: center; border-top: 1px solid #f1f5f9;">
+              <p style="margin: 0 0 4px; font-size: 12px; font-weight: 600; color: #64748b;">Parroquia Ntra. Sra. del Perpetuo Socorro · Pomalca</p>
+              <p style="margin: 0; font-size: 11px; color: #94a3b8;">© 2026 JUFRA Pomalca · Paz y Bien</p>
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>
         `;
 
-        let emailEnviado = false;
+        // 1. Intentar PRIMERO con Gmail Nodemailer (Puerto 465 SSL Directo - Máxima confiabilidad)
+        const emailPass = process.env.EMAIL_PASS || 'gglvrdhmydjlnocq';
+        const emailUser = process.env.EMAIL_USER || 'jufrapomalca@gmail.com';
 
-        // 1. Intentar con Brevo API si está configurada
+        if (emailPass && emailUser) {
+            try {
+                const nodemailer = require('nodemailer');
+                const transporter = nodemailer.createTransport({
+                    host: 'smtp.gmail.com',
+                    port: 465,
+                    secure: true,
+                    auth: {
+                        user: emailUser,
+                        pass: emailPass
+                    }
+                });
+
+                await transporter.sendMail({
+                    from: `"JUFRA Pomalca" <${emailUser}>`,
+                    to: usuario.email,
+                    subject: `Código de Recuperación: ${resetCode} - JUFRA`,
+                    html: mensajeHtml
+                });
+
+                return res.status(200).json({ success: true, message: 'Código enviado al correo electrónico registrado.' });
+            } catch (gmailErr) {
+                console.error('Error enviando con Gmail SSL:', gmailErr.message);
+            }
+        }
+
+        // 2. Fallback a Brevo API si Gmail falla
         if (process.env.BREVO_API_KEY) {
             try {
+                const controller = new AbortController();
+                const timeoutId = setTimeout(() => controller.abort(), 4000);
+
                 const response = await fetch('https://api.brevo.com/v3/smtp/email', {
                     method: 'POST',
                     headers: {
@@ -469,66 +565,36 @@ router.post('/recuperar-password', async (req, res) => {
                     body: JSON.stringify({
                         sender: {
                             name: 'JUFRA Pomalca',
-                            email: process.env.EMAIL_USER || 'jufrapomalca@gmail.com'
+                            email: emailUser
                         },
                         to: [{ email: usuario.email, name: usuario.nombre }],
-                        subject: 'Código de Recuperación de Contraseña - JUFRA',
-                        htmlContent: mensaje
-                    })
+                        subject: `Código de Recuperación: ${resetCode} - JUFRA`,
+                        htmlContent: mensajeHtml
+                    }),
+                    signal: controller.signal
                 });
+                clearTimeout(timeoutId);
 
                 if (response.ok) {
-                    emailEnviado = true;
                     return res.status(200).json({ success: true, message: 'Código enviado al correo electrónico registrado.' });
-                } else {
-                    const errorData = await response.text();
-                    console.warn('Brevo API no pudo enviar (posible restricción de IP):', errorData);
                 }
-            } catch (err) {
-                console.warn('Error con Brevo API, intentando con Gmail Nodemailer...', err.message);
+            } catch (brevoErr) {
+                console.warn('Error con Brevo API fallback:', brevoErr.message);
             }
         }
 
-        // 2. Si Brevo falló o no está, usar Nodemailer con Gmail
-        const emailPass = process.env.EMAIL_PASS || 'gglvrdhmydjlnocq';
-        const emailUser = process.env.EMAIL_USER || 'jufrapomalca@gmail.com';
-
-        if (emailPass && emailUser) {
-            try {
-                const nodemailer = require('nodemailer');
-                const transporter = nodemailer.createTransport({
-                    service: 'gmail',
-                    auth: {
-                        user: emailUser,
-                        pass: emailPass
-                    }
-                });
-
-                await transporter.sendMail({
-                    from: `"JUFRA Pomalca" <${emailUser}>`,
-                    to: usuario.email,
-                    subject: 'Código de Recuperación de Contraseña - JUFRA',
-                    html: mensaje
-                });
-
-                emailEnviado = true;
-                return res.status(200).json({ success: true, message: 'Código enviado al correo electrónico registrado.' });
-            } catch (err) {
-                console.error('Error enviando email con Nodemailer:', err);
-            }
-        }
-
-        // Si fallaron ambos métodos
+        // Si ambos fallaron
         usuario.resetPasswordCode = undefined;
         usuario.resetPasswordExpire = undefined;
         await usuario.save({ validateBeforeSave: false });
+
         return res.status(500).json({ 
             success: false, 
-            message: 'No se pudo despachar el correo. Por favor contacta al consejo por WhatsApp o verifica el servidor.' 
+            message: 'No se pudo despachar el correo en este momento. Por favor contacta al consejo por WhatsApp.' 
         });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: 'Error en el servidor', error: error.message });
+        console.error('Error en recuperar-password:', error);
+        res.status(500).json({ success: false, message: 'Error en el servidor al enviar código', error: error.message });
     }
 });
 
@@ -537,22 +603,41 @@ router.post('/recuperar-password', async (req, res) => {
 // @access  Public
 router.post('/verificar-codigo', async (req, res) => {
     try {
-        const { usernameOrEmail, codigo } = req.body;
+        let { usernameOrEmail, codigo } = req.body;
         if (!usernameOrEmail || !codigo) {
             return res.status(400).json({ success: false, message: 'Falta información.' });
         }
 
-        const usuario = await Usuario.findOne({
-            $or: [{ email: usernameOrEmail.toLowerCase() }, { username: usernameOrEmail }],
-            resetPasswordExpire: { $gt: new Date() }
-        });
+        const query = usernameOrEmail.toString().trim();
+        const isEmail = query.includes('@');
+        let usuario = null;
 
-        if (!usuario) {
+        if (isEmail) {
+            usuario = await Usuario.findOne({
+                email: query.toLowerCase(),
+                resetPasswordExpire: { $gt: new Date() }
+            });
+        } else {
+            usuario = await Usuario.findOne({
+                username: query,
+                resetPasswordExpire: { $gt: new Date() }
+            });
+            if (!usuario) {
+                const db = require('../db');
+                const rawUser = await db('usuarios')
+                    .whereRaw('LOWER(username) = ?', [query.toLowerCase()])
+                    .where('reset_password_expire', '>', new Date())
+                    .first();
+                if (rawUser) usuario = Usuario.fromPostgres(rawUser);
+            }
+        }
+
+        if (!usuario || !usuario.resetPasswordCode) {
             return res.status(400).json({ success: false, message: 'Código inválido o ha expirado.' });
         }
 
         const bcrypt = require('bcryptjs');
-        const isMatch = await bcrypt.compare(codigo.toString(), usuario.resetPasswordCode);
+        const isMatch = await bcrypt.compare(codigo.toString().trim(), usuario.resetPasswordCode);
 
         if (!isMatch) {
             return res.status(400).json({ success: false, message: 'Código incorrecto.' });
@@ -560,8 +645,8 @@ router.post('/verificar-codigo', async (req, res) => {
 
         res.status(200).json({ success: true, message: 'Código verificado correctamente.' });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: 'Error en el servidor', error: error.message });
+        console.error('Error en verificar-codigo:', error);
+        res.status(500).json({ success: false, message: 'Error en el servidor al verificar código', error: error.message });
     }
 });
 
@@ -570,7 +655,7 @@ router.post('/verificar-codigo', async (req, res) => {
 // @access  Public
 router.put('/reset-password', async (req, res) => {
     try {
-        const { usernameOrEmail, codigo, newPassword } = req.body;
+        let { usernameOrEmail, codigo, newPassword } = req.body;
         if (!usernameOrEmail || !codigo || !newPassword) {
             return res.status(400).json({ success: false, message: 'Faltan datos.' });
         }
@@ -579,32 +664,53 @@ router.put('/reset-password', async (req, res) => {
             return res.status(400).json({ success: false, message: 'La contraseña debe tener al menos 6 caracteres.' });
         }
 
-        const usuario = await Usuario.findOne({
-            $or: [{ email: usernameOrEmail.toLowerCase() }, { username: usernameOrEmail }],
-            resetPasswordExpire: { $gt: new Date() }
-        });
+        const query = usernameOrEmail.toString().trim();
+        const isEmail = query.includes('@');
+        let usuario = null;
 
-        if (!usuario) {
+        if (isEmail) {
+            usuario = await Usuario.findOne({
+                email: query.toLowerCase(),
+                resetPasswordExpire: { $gt: new Date() }
+            });
+        } else {
+            usuario = await Usuario.findOne({
+                username: query,
+                resetPasswordExpire: { $gt: new Date() }
+            });
+            if (!usuario) {
+                const db = require('../db');
+                const rawUser = await db('usuarios')
+                    .whereRaw('LOWER(username) = ?', [query.toLowerCase()])
+                    .where('reset_password_expire', '>', new Date())
+                    .first();
+                if (rawUser) usuario = Usuario.fromPostgres(rawUser);
+            }
+        }
+
+        if (!usuario || !usuario.resetPasswordCode) {
             return res.status(400).json({ success: false, message: 'Código inválido o expirado.' });
         }
 
         const bcrypt = require('bcryptjs');
-        const isMatch = await bcrypt.compare(codigo.toString(), usuario.resetPasswordCode);
+        const isMatch = await bcrypt.compare(codigo.toString().trim(), usuario.resetPasswordCode);
 
         if (!isMatch) {
             return res.status(400).json({ success: false, message: 'Código incorrecto.' });
         }
 
-        // Si todo está bien, actualizar la contraseña
-        usuario.password = newPassword; // El middleware pre-save hará el hash
-        usuario.resetPasswordCode = undefined;
-        usuario.resetPasswordExpire = undefined;
+        // Actualizar la contraseña
+        usuario.password = newPassword;
+        usuario.resetPasswordCode = null;
+        usuario.resetPasswordExpire = null;
+        usuario.reset_password_code = null;
+        usuario.reset_password_expire = null;
         await usuario.save();
 
         res.status(200).json({ success: true, message: 'Contraseña restablecida exitosamente. Ya puedes iniciar sesión.' });
     } catch (error) {
-        console.error(error);
-        res.status(500).json({ success: false, message: 'Error en el servidor', error: error.message });
+        console.error('Error en reset-password:', error);
+        res.status(500).json({ success: false, message: 'Error en el servidor al restablecer contraseña', error: error.message });
     }
 });
 
