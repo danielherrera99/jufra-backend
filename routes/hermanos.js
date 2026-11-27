@@ -27,7 +27,7 @@ router.get('/', proteger, async (req, res) => {
 
         // Filtro Multi-Tenant por fraternidad
         if (esSuperAdmin) {
-            if (req.query.fraternidadId) {
+            if (req.query.fraternidadId && req.query.fraternidadId !== 'all-peru' && req.query.fraternidadId !== 'all') {
                 query.fraternidadId = req.query.fraternidadId;
             }
         } else {
@@ -89,12 +89,18 @@ router.get('/:id', proteger, async (req, res) => {
 // @access  Private (Admin/Consejo)
 router.put('/:id', proteger, autorizarRoles('admin', 'consejo'), async (req, res) => {
     try {
+        const esSuperAdmin = req.usuario.rol === 'superadmin' || req.usuario.rol === 'admin_nacional';
         const camposPermitidos = [
             'nombre', 'apellido', 'telefono', 'fechaNacimiento',
             'fechaIngreso', 'fechaPromesa', 'rol', 'cargo',
             'foto', 'activo', 'username', 'password', 'email',
             'etapaFormacion', 'etapa_formacion'
         ];
+
+        // Solo Super Admin puede reasignar a un hermano de fraternidad
+        if (esSuperAdmin) {
+            camposPermitidos.push('fraternidadId', 'fraternidad_id');
+        }
 
         let hermano = await Usuario.findById(req.params.id);
 
