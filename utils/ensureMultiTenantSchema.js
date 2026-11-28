@@ -75,7 +75,9 @@ async function ensureMultiTenantSchema() {
                 'ALTER TABLE fraternidades ADD COLUMN IF NOT EXISTS facebook VARCHAR(255)',
                 'ALTER TABLE fraternidades ADD COLUMN IF NOT EXISTS tiktok VARCHAR(255)',
                 'ALTER TABLE fraternidades ADD COLUMN IF NOT EXISTS banner_url TEXT',
-                'ALTER TABLE fraternidades ADD COLUMN IF NOT EXISTS logo_url TEXT'
+                'ALTER TABLE fraternidades ADD COLUMN IF NOT EXISTS logo_url TEXT',
+                'ALTER TABLE fraternidades ADD COLUMN IF NOT EXISTS latitud NUMERIC(10, 6)',
+                'ALTER TABLE fraternidades ADD COLUMN IF NOT EXISTS longitud NUMERIC(10, 6)'
             ];
 
             for (const colSql of fratColumns) {

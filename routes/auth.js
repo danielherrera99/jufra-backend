@@ -335,6 +335,39 @@ router.get('/perfil', require('../middleware/auth').proteger, async (req, res) =
     }
 });
 
+// @route   GET /api/auth/wallet-pass
+// @desc    Generar Pase Digital Oficial de Google Wallet (JUFRA Pass)
+// @access  Private
+router.get('/wallet-pass', require('../middleware/auth').proteger, async (req, res) => {
+    try {
+        const usuario = await Usuario.findById(req.usuario._id);
+        if (!usuario) {
+            return res.status(404).json({ success: false, message: 'Usuario no encontrado' });
+        }
+
+        let fraternidad = null;
+        const fratId = usuario.fraternidadId || usuario.fraternidad_id;
+        if (fratId) {
+            fraternidad = await Fraternidad.findById(fratId);
+        }
+
+        const { generateGoogleWalletSaveUrl } = require('../utils/googleWallet');
+        const walletResult = generateGoogleWalletSaveUrl({ usuario, fraternidad });
+
+        res.status(200).json({
+            success: true,
+            ...walletResult
+        });
+    } catch (error) {
+        console.error('Error generando Google Wallet Pass:', error);
+        res.status(500).json({
+            success: false,
+            message: 'Error al generar el pase de Google Wallet',
+            error: error.message
+        });
+    }
+});
+
 // @route   PUT /api/auth/perfil
 // @desc    Actualizar perfil del usuario autenticado
 // @access  Private
