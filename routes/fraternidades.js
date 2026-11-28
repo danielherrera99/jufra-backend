@@ -16,6 +16,22 @@ router.get('/', async (req, res) => {
     }
 });
 
+// @route   GET /api/fraternidades/:id
+// @desc    Obtener una fraternidad por ID
+// @access  Public
+router.get('/:id', async (req, res) => {
+    try {
+        const fraternidad = await Fraternidad.findById(req.params.id);
+        if (!fraternidad) {
+            return res.status(404).json({ success: false, message: 'Fraternidad no encontrada' });
+        }
+        res.json({ success: true, data: fraternidad });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ success: false, message: 'Error al obtener la fraternidad' });
+    }
+});
+
 // @route   POST /api/fraternidades
 // @desc    Crear una nueva fraternidad (SuperAdmin / Admin Nacional)
 // @access  Private
@@ -58,7 +74,11 @@ router.put('/:id', proteger, async (req, res) => {
             return res.status(403).json({ success: false, message: 'No tienes permisos para modificar los datos de esta fraternidad.' });
         }
 
-        const { nombre, departamento, parroquia, zona, contacto, telefono, enlaceSocial } = req.body;
+        const { 
+            nombre, departamento, parroquia, zona, contacto, telefono, enlaceSocial,
+            descripcion, lema, direccion, horarioReunion, instagram, facebook, tiktok,
+            bannerUrl, logoUrl
+        } = req.body;
         
         let fraternidad = await Fraternidad.findById(req.params.id);
         if (!fraternidad) {
@@ -70,11 +90,20 @@ router.put('/:id', proteger, async (req, res) => {
         if (departamento && isGlobalAdmin) fraternidad.departamento = departamento;
         if (zona && isGlobalAdmin) fraternidad.zona = zona;
 
-        // Coordinador local o admin pueden actualizar sede, contacto, teléfono y redes
-        fraternidad.parroquia = parroquia !== undefined ? parroquia : fraternidad.parroquia;
-        fraternidad.contacto = contacto !== undefined ? contacto : fraternidad.contacto;
-        fraternidad.telefono = telefono !== undefined ? telefono : fraternidad.telefono;
-        fraternidad.enlaceSocial = enlaceSocial !== undefined ? enlaceSocial : fraternidad.enlaceSocial;
+        // Coordinador local o admin pueden actualizar información y portal web
+        if (parroquia !== undefined) fraternidad.parroquia = parroquia;
+        if (contacto !== undefined) fraternidad.contacto = contacto;
+        if (telefono !== undefined) fraternidad.telefono = telefono;
+        if (enlaceSocial !== undefined) fraternidad.enlaceSocial = enlaceSocial;
+        if (descripcion !== undefined) fraternidad.descripcion = descripcion;
+        if (lema !== undefined) fraternidad.lema = lema;
+        if (direccion !== undefined) fraternidad.direccion = direccion;
+        if (horarioReunion !== undefined) fraternidad.horarioReunion = horarioReunion;
+        if (instagram !== undefined) fraternidad.instagram = instagram;
+        if (facebook !== undefined) fraternidad.facebook = facebook;
+        if (tiktok !== undefined) fraternidad.tiktok = tiktok;
+        if (bannerUrl !== undefined) fraternidad.bannerUrl = bannerUrl;
+        if (logoUrl !== undefined) fraternidad.logoUrl = logoUrl;
 
         await fraternidad.save();
         res.json({ success: true, data: fraternidad, message: '¡Datos de la fraternidad actualizados con éxito!' });

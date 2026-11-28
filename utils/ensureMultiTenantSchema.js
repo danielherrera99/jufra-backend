@@ -64,6 +64,27 @@ async function ensureMultiTenantSchema() {
                     ADD COLUMN IF NOT EXISTS es_nacional BOOLEAN NOT NULL DEFAULT false
                 `);
             }
+
+            // Columnas enriquecidas para el portal público de cada fraternidad
+            const fratColumns = [
+                'ALTER TABLE fraternidades ADD COLUMN IF NOT EXISTS descripcion TEXT',
+                'ALTER TABLE fraternidades ADD COLUMN IF NOT EXISTS lema VARCHAR(255)',
+                'ALTER TABLE fraternidades ADD COLUMN IF NOT EXISTS direccion VARCHAR(255)',
+                'ALTER TABLE fraternidades ADD COLUMN IF NOT EXISTS horario_reunion VARCHAR(255)',
+                'ALTER TABLE fraternidades ADD COLUMN IF NOT EXISTS instagram VARCHAR(255)',
+                'ALTER TABLE fraternidades ADD COLUMN IF NOT EXISTS facebook VARCHAR(255)',
+                'ALTER TABLE fraternidades ADD COLUMN IF NOT EXISTS tiktok VARCHAR(255)',
+                'ALTER TABLE fraternidades ADD COLUMN IF NOT EXISTS banner_url TEXT',
+                'ALTER TABLE fraternidades ADD COLUMN IF NOT EXISTS logo_url TEXT'
+            ];
+
+            for (const colSql of fratColumns) {
+                try {
+                    await db.raw(colSql);
+                } catch (colErr) {
+                    // Columna ya existente o ignorar si ya fue aplicada
+                }
+            }
         } catch (err) {
             console.error('⚠️ Error en ensureMultiTenantSchema:', err.message);
             schemaPromise = null;
