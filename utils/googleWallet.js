@@ -52,6 +52,7 @@ function buildPassPayload({ usuario, fraternidad, issuerId }) {
     const genericObject = {
         id: objectId,
         classId: classId,
+        state: 'ACTIVE',
         logo: {
             sourceUri: {
                 uri: 'https://jufrapomalca.vercel.app/tau.png'
@@ -166,7 +167,10 @@ function generateGoogleWalletSaveUrl({ usuario, fraternidad }) {
     }
 
     try {
-        // Normalizar clave privada (reemplazar \\n por saltos de línea reales)
+        // Normalizar clave privada (remover comillas externas y reemplazar \\n por saltos reales)
+        if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+            privateKey = privateKey.slice(1, -1);
+        }
         if (privateKey.includes('\\n')) {
             privateKey = privateKey.replace(/\\n/g, '\n');
         }
@@ -176,12 +180,8 @@ function generateGoogleWalletSaveUrl({ usuario, fraternidad }) {
         const claims = {
             iss: clientEmail,
             aud: 'google',
-            origins: [
-                'https://jufrapomalca.vercel.app',
-                'http://localhost:5173',
-                'http://localhost:3000'
-            ],
             typ: 'savetowallet',
+            iat: Math.floor(Date.now() / 1000),
             payload: {
                 genericClasses: [genericClass],
                 genericObjects: [genericObject]
